@@ -43,9 +43,7 @@ React.useEffect(() => {
               Fill roles faster with one touch posting to multiple job sites, Resume screening using AI Natural Language Processing & AI interviews
             </h1>
             <p className="mt-4 text-lg leading-relaxed text-slate-600">
-              Automate job posting, shortlist the right talent with natural-language scoring,
-              and coordinate interviews without need of human interaction. Our AI assistants handle the
-              heavy lifting so your team focuses on critical success factor for your business with the right hire.
+              Post once. Hire faster. Let AI find and interview your best candidates.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <a
