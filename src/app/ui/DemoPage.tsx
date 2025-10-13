@@ -3,15 +3,16 @@
 import React, { useState } from "react";
 import { actionSendDemo } from "../actions/sendDemo"; // ✅ correct relative path
 
+
+export default function DemoPage() {
+  const [status, setStatus] = useState<"idle" | "pending" | "ok" | "error">("idle");
+  const siteName = process.env.SITE_NAME || "Recruitment as a Service";
+
 React.useEffect(() => {
   if (typeof window !== "undefined") {
     document.documentElement.style.scrollBehavior = "smooth";
   }
 }, []);
-
-export default function DemoPage() {
-  const [status, setStatus] = useState<"idle" | "pending" | "ok" | "error">("idle");
-  const siteName = process.env.SITE_NAME || "Recruitment as a Service";
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
