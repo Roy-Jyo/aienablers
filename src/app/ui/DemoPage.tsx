@@ -1,5 +1,11 @@
 "use client";
 
+React.useEffect(() => {
+  if (typeof window !== "undefined") {
+    document.documentElement.style.scrollBehavior = "smooth";
+  }
+}, []);
+
 import React, { useState } from "react";
 import { actionSendDemo } from "../actions/sendDemo"; // ✅ correct relative path
 
@@ -33,12 +39,12 @@ export default function DemoPage() {
               AI-powered Recruitment as a Service (RaaS)
             </span>
             <h1 className="mt-5 text-4xl font-semibold tracking-tight sm:text-5xl">
-              Fill roles faster with multi-posting, NLP screening & AI interviews
+              Fill roles faster with one touch posting to multiple job sites, Resume screening using AI Natural Language Processing & AI interviews
             </h1>
             <p className="mt-4 text-lg leading-relaxed text-slate-600">
-              Automate job distribution, shortlist the right talent with natural-language scoring,
-              and coordinate interviews without the back-and-forth. Our AI assistants handle the
-              heavy lifting so your team focuses on final decisions.
+              Automate job posting, shortlist the right talent with natural-language scoring,
+              and coordinate interviews without need of human interaction. Our AI assistants handle the
+              heavy lifting so your team focuses on critical success factor for your business with the right hire.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <a
@@ -166,6 +172,36 @@ export default function DemoPage() {
           </div>
         </div>
       </section>
+
+      {/* HOW IT WORKS SECTION */}
+        <section id="how" className="mx-auto max-w-7xl px-6 py-16 bg-slate-50">
+        <h2 className="text-2xl font-semibold text-center">How It Works</h2>
+        <p className="mt-4 text-center text-slate-600 max-w-2xl mx-auto">
+            Our Recruitment-as-a-Service (RaaS) platform automates every step — from job posting to AI-driven
+            interviews — helping you reduce time-to-hire and recruiter effort dramatically.
+        </p>
+
+        <div className="mt-10 grid gap-8 sm:grid-cols-3">
+            <div className="rounded-2xl bg-white p-6 shadow-sm">
+            <h3 className="text-lg font-semibold mb-2">1. Post Everywhere</h3>
+            <p className="text-slate-600 text-sm">
+                Publish your job once and let AI distribute it across multiple job boards automatically.
+            </p>
+            </div>
+            <div className="rounded-2xl bg-white p-6 shadow-sm">
+            <h3 className="text-lg font-semibold mb-2">2. Smart Screening</h3>
+            <p className="text-slate-600 text-sm">
+                Our NLP engine reads and ranks CVs instantly, filtering only the best matches to your inbox.
+            </p>
+            </div>
+            <div className="rounded-2xl bg-white p-6 shadow-sm">
+            <h3 className="text-lg font-semibold mb-2">3. AI Interviews</h3>
+            <p className="text-slate-600 text-sm">
+                Schedule or conduct AI-driven interviews automatically — saving your team hours per role.
+            </p>
+            </div>
+        </div>
+        </section>
 
       {/* FOOTER */}
       <footer className="border-t bg-white/60">
