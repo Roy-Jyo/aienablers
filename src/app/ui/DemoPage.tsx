@@ -1,13 +1,13 @@
 "use client";
 
+import React, { useState } from "react";
+import { actionSendDemo } from "../actions/sendDemo"; // ✅ correct relative path
+
 React.useEffect(() => {
   if (typeof window !== "undefined") {
     document.documentElement.style.scrollBehavior = "smooth";
   }
 }, []);
-
-import React, { useState } from "react";
-import { actionSendDemo } from "../actions/sendDemo"; // ✅ correct relative path
 
 export default function DemoPage() {
   const [status, setStatus] = useState<"idle" | "pending" | "ok" | "error">("idle");
