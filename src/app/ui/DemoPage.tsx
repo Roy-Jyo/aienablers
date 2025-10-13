@@ -184,19 +184,19 @@ React.useEffect(() => {
             <div className="rounded-2xl bg-white p-6 shadow-sm">
             <h3 className="text-lg font-semibold mb-2">1. Post Everywhere</h3>
             <p className="text-slate-600 text-sm">
-                Publish your job once and let AI distribute it across multiple job boards automatically.
+                Publish your job once with a touch of a button, and let AI distribute it across multiple job boards automatically.
             </p>
             </div>
             <div className="rounded-2xl bg-white p-6 shadow-sm">
             <h3 className="text-lg font-semibold mb-2">2. Smart Screening</h3>
             <p className="text-slate-600 text-sm">
-                Our NLP engine reads and ranks CVs instantly, filtering only the best matches to your inbox.
+                Unlike ATS, our engine reads and ranks CVs instantly using NLP (Natural Language Processing), filtering only the best matches to your inbox. Great candidates sometimes lack great CVs with keyword matching, eliminate the chances of missing out on those.
             </p>
             </div>
             <div className="rounded-2xl bg-white p-6 shadow-sm">
             <h3 className="text-lg font-semibold mb-2">3. AI Interviews</h3>
             <p className="text-slate-600 text-sm">
-                Schedule or conduct AI-driven interviews automatically — saving your team hours per role.
+                Schedule or conduct AI-driven interviews automatically, no need of back-and-forth for preferred timing — saving your team hours per role.
             </p>
             </div>
         </div>
