@@ -32,7 +32,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <nav className="w-full bg-white shadow-sm sticky top-0 z-50">
           <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
             <Link href="/" className="text-2xl font-bold text-blue-600">
-              RecruitAI
+              AIEnablers.io
             </Link>
             <div className="flex space-x-6">
               <Link href="/submit-cv" className="hover:text-blue-600 font-medium">
