@@ -49,8 +49,13 @@ export async function POST(req: Request) {
       message: "File uploaded successfully",
       fileName,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Upload error:", error);
+
+    if (error instanceof Error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
     return NextResponse.json({ error: "Upload failed" }, { status: 500 });
   }
 }
