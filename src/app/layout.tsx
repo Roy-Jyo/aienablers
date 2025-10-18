@@ -1,5 +1,6 @@
 // src/app/layout.tsx
 import "./../styles/globals.css"; // one level up into styles
+import Link from "next/link";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
