@@ -1,12 +1,26 @@
-import './globals.css';
-import Link from 'next/link';
+// src/app/layout.tsx
+import "./../styles/globals.css"; // one level up into styles
+import Link from "next/link";
+import type { Metadata } from "next";
 
-export const metadata = {
-  title: 'AI Enablers RaaS | AI-Enabled Recruitment',
-  description: 'Revolutionising recruitment with AI automation and data-driven insights.',
+export const metadata: Metadata = {
+  title: "Recruitment as a Service",
+  description: "AI-powered job multi-posting, NLP CV ranking, and AI interviews",
 };
 
-export default function RootLayout({
+
+
+/* old code
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <body>{children}</body>
+    </html>
+  );
+} */
+
+
+  export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -18,35 +32,26 @@ export default function RootLayout({
         <nav className="w-full bg-white shadow-sm sticky top-0 z-50">
           <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
             <Link href="/" className="text-2xl font-bold text-blue-600">
-              AI Enablers RaaS
+              AIEnablers.io
             </Link>
             <div className="flex space-x-6">
-              {/* Suppressed for now:
               <Link href="/submit-cv" className="hover:text-blue-600 font-medium">
                 Submit CV
               </Link>
-              */}
-              <Link
-                href="/cost-saving"
-                className="text-gray-700 hover:text-blue-600 font-medium transition"
-              >
+              <Link href="/cost-saving" className="hover:text-blue-600 font-medium">
                 Calculate Cost Saving
               </Link>
-              {/* Suppressed for now:
               <Link href="/knowledge" className="hover:text-blue-600 font-medium">
-                Knowledge Base
-              </Link>
-              */}
+                Knowledge
+              </Link> 
             </div>
           </div>
         </nav>
 
-        {/* Page Content */}
         <main>{children}</main>
 
-        {/* Footer */}
         <footer className="py-8 text-center text-sm text-gray-500 bg-gray-100 mt-16">
-          © {new Date().getFullYear()} AI Enablers RaaS. All rights reserved.
+          © {new Date().getFullYear()} Aienablers RaaS. All rights reserved.
         </footer>
       </body>
     </html>

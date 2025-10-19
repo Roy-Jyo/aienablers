@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend } from 'recharts';
 
 export default function CostSaving() {
   const [cost, setCost] = useState('');
@@ -9,7 +10,7 @@ export default function CostSaving() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const baseCost = 1750;
+    const baseCost = 1750; // AI Enablers RaaS base cost per role
     const userCost = parseFloat(cost);
     if (!isNaN(userCost)) {
       const percent = ((baseCost - userCost) / baseCost) * 100;
@@ -18,14 +19,26 @@ export default function CostSaving() {
     }
   };
 
+  const COLORS = ['#2563EB', '#CBD5E1'];
+
+  const data = saving
+    ? [
+        { name: 'Saving', value: saving > 0 ? saving : 0 },
+        { name: 'Remaining Cost', value: saving > 0 ? 100 - saving : 100 },
+      ]
+    : [];
+
   return (
     <section className="max-w-4xl mx-auto py-24 px-6 text-center">
       <h1 className="text-4xl font-bold text-blue-700 mb-8">
         Calculate Your Cost Saving
       </h1>
+
       <p className="text-gray-600 mb-10 max-w-2xl mx-auto">
-        Compare your recruitment cost per role to the traditional average of <strong>$1750</strong>.
-        Discover how much you save with AIENablers' RaaS — and how those savings grow with scale.
+        Compare your recruitment cost per role to the traditional average of{' '}
+        <strong>$1750</strong>. Discover how much you save with{' '}
+        <strong>AI Enablers RaaS</strong> — and how those savings grow as you
+        scale your hiring.
       </p>
 
       <form
@@ -51,25 +64,57 @@ export default function CostSaving() {
       {/* Modal Popup */}
       {showModal && saving !== null && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="bg-white rounded-2xl shadow-lg p-8 w-11/12 max-w-lg text-center">
-            <h2 className="text-2xl font-bold text-blue-700 mb-4">Your Saving</h2>
+          <div className="bg-white rounded-2xl shadow-lg p-8 w-11/12 max-w-lg text-center relative">
+            <h2 className="text-2xl font-bold text-blue-700 mb-6">
+              Your Cost Saving
+            </h2>
+
+            <div className="w-full h-60 mb-6">
+              <ResponsiveContainer>
+                <PieChart>
+                  <Pie
+                    data={data}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={70}
+                    outerRadius={100}
+                    paddingAngle={3}
+                  >
+                    {data.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={COLORS[index % COLORS.length]}
+                      />
+                    ))}
+                  </Pie>
+                  <Legend verticalAlign="bottom" />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
 
             {saving >= 0 ? (
-              <p className="text-lg text-gray-700 mb-6">
-                You save <strong>{saving.toFixed(1)}%</strong> per role using AIENablers' RaaS
-                compared to the traditional agency cost of $1750.
+              <p className="text-lg text-gray-700 mb-4">
+                You save <strong>{saving.toFixed(1)}%</strong> per role compared
+                to traditional agencies — with{' '}
+                <strong>AI Enablers RaaS</strong> priced at a flat{' '}
+                <strong>$1,750</strong> for the first role.
               </p>
             ) : (
-              <p className="text-lg text-gray-700 mb-6">
-                Your cost per role is <strong>{Math.abs(saving.toFixed(1))}% higher</strong>
-                than the traditional average — explore our service to optimise further!
+              <p className="text-lg text-gray-700 mb-4">
+                Your cost per role is{' '}
+                <strong>{Math.abs(saving.toFixed(1))}% higher</strong> than{' '}
+                <strong>AI Enablers RaaS</strong>. Switching can immediately
+                reduce your recruitment spend.
               </p>
             )}
 
-            <p className="text-gray-600 mb-8">
-              As you fulfil more roles each month, your total saving compounds — 
-              imagine saving <strong>{(saving > 0 ? saving : 0).toFixed(1)}%</strong> across
-              5, 10, or 20 roles — that’s significant ROI for your business.
+            <p className="text-gray-600 mb-6">
+              With <strong>AI Enablers RaaS</strong>, subsequent roles fulfilled
+              within the same month are offered at a reduced cost — delivering
+              even greater savings as you scale your hiring. The more roles you
+              fill, the higher your overall efficiency and ROI.
             </p>
 
             <button
@@ -84,6 +129,7 @@ export default function CostSaving() {
     </section>
   );
 }
+
 
 
 /* 
