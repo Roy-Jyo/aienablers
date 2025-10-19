@@ -35,8 +35,7 @@ export default function CostSaving() {
       </h1>
 
       <p className="text-gray-600 mb-10 max-w-2xl mx-auto">
-        Compare your recruitment cost per role to the traditional average of{' '}
-        <strong>$1750</strong>. Discover how much you save with{' '}
+        Compare your recruitment cost per role against our offering. Discover how much you save with{' '}
         <strong>AI Enablers RaaS</strong> — and how those savings grow as you
         scale your hiring.
       </p>
@@ -50,7 +49,9 @@ export default function CostSaving() {
           placeholder="Your average cost per role ($)"
           value={cost}
           onChange={(e) => setCost(e.target.value)}
-          className="w-full border border-gray-300 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          /*className="w-full border border-gray-300 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          required */
+          className="w-full border border-gray-300 p-3 rounded-md text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
           required
         />
         <button
