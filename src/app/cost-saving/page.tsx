@@ -105,7 +105,7 @@ export default function CostSaving() {
             ) : (
               <p className="text-lg text-gray-700 mb-4">
                 Your cost per role is{' '}
-                <strong>{Math.abs(Number(saving.toFixed(1)))}% higher</strong>
+                <strong>{Math.abs(Number(saving.toFixed(1)))}% higher compared to </strong>
                 <strong>AI Enablers RaaS</strong>. Switching can immediately
                 reduce your recruitment spend.
               </p>
