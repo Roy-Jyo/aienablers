@@ -1,10 +1,11 @@
 import './globals.css';
 import Link from 'next/link';
-import Script from 'next/script'; // Google Analytics
+import Script from 'next/script'; // 👈 Add this import
 
 export const metadata = {
   title: 'AI Enablers RaaS | AI-Enabled Recruitment',
-  description: 'Revolutionising recruitment with AI automation and data-driven insights.',
+  description:
+    'Revolutionising recruitment with AI automation and data-driven insights.',
 };
 
 export default function RootLayout({
@@ -14,6 +15,28 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        {/* ✅ Google Analytics tracking (GA4) */}
+        <Script
+          async
+          src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID}`}
+        />
+        <Script
+          id="google-analytics"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', '${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID}', {
+                page_path: window.location.pathname,
+              });
+            `,
+          }}
+        />
+      </head>
+
       <body className="bg-gray-50 text-gray-900 font-sans">
         {/* Navigation Bar */}
         <nav className="w-full bg-white shadow-sm sticky top-0 z-50">
