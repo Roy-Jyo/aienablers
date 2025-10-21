@@ -18,7 +18,7 @@ export default function RootLayout({
         <Navbar />
         <main>{children}</main>
         <footer className="py-8 text-center text-sm text-gray-500 bg-gray-100 mt-16">
-          © {new Date().getFullYear()} AI Enablers RaaS. All rights reserved.
+          © {new Date().getFullYear()} <span className="font-medium text-gray-600">DAPAR Technologies, AIEnablers RaaS.</span> All rights reserved.
         </footer>
       </body>
     </html>
