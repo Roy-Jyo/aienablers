@@ -27,7 +27,7 @@ export default function AboutSection() {
       </p>
 
       <p className="text-lg text-gray-700 leading-relaxed mb-8">
-        Headquartered in Sydney and backed by Anstelglobal (www.https://www.anstelglobal.com/) operating across Australia, we empower
+        Headquartered in Sydney operating across Australia, we empower
         employers and agencies alike to achieve recruitment efficiency through
         intelligent automation — enabling faster, fairer, and more scalable
         hiring decisions.
