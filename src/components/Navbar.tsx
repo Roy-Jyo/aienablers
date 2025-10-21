@@ -45,7 +45,8 @@ export default function Navbar() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.25 }}
-            className="bg-white border-t border-gray-200 shadow-md py-3 text-center md:text-left"
+            /* className="bg-white border-t border-gray-200 shadow-md py-3 text-center md:text-left" */
+            className="absolute right-6 mt-2 w-56 bg-white border border-gray-200 shadow-lg rounded-xl py-3 text-center"
           >
             <Link
               href="/about"
