@@ -4,15 +4,28 @@ import React, { useState } from "react";
 export default function CostSavingCalculator() {
   const [cost, setCost] = useState<number | null>(null);
   const [showPopup, setShowPopup] = useState(false);
-  const [isCheaper, setIsCheaper] = useState(false);
+  const [popupMessage, setPopupMessage] = useState({
+    title: "",
+    text: "",
+    color: "",
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
     if (cost !== null) {
       if (cost <= 1750) {
-        setIsCheaper(true);
+        setPopupMessage({
+          title: "You're already cost-efficient! 🎉",
+          text: "Your recruitment process is already performing at an efficient level compared to market standards. That’s impressive — and with AIEnablers RaaS, you can still enhance scalability, automation, and time-to-hire.",
+          color: "text-green-600",
+        });
       } else {
-        setIsCheaper(false);
+        setPopupMessage({
+          title: "You could save up to 50%! 💡",
+          text: "Your current recruitment cost could be significantly reduced through AI automation. AIEnablers helps streamline job posting, screening, and interviews for faster, smarter, and bias-free hiring.",
+          color: "text-blue-600",
+        });
       }
       setShowPopup(true);
     }
@@ -52,29 +65,10 @@ export default function CostSavingCalculator() {
       {showPopup && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center">
           <div className="bg-white rounded-2xl p-6 shadow-xl w-full max-w-sm text-center">
-            {isCheaper ? (
-              <>
-                <h2 className="text-xl font-semibold text-green-600 mb-2">
-                  You’re already cost-efficient! 🎉
-                </h2>
-                <p className="text-gray-700 mb-4">
-                  Your current cost per role is below <strong>$1750</strong>.
-                  That’s an excellent benchmark — but with AIEnablers RaaS, you
-                  can still gain speed, scale, and automation benefits.
-                </p>
-              </>
-            ) : (
-              <>
-                <h2 className="text-xl font-semibold text-blue-600 mb-2">
-                  You could save up to 50%! 💡
-                </h2>
-                <p className="text-gray-700 mb-4">
-                  Your current cost per role exceeds <strong>$1750</strong>. AIEnablers
-                  can help you reduce time-to-hire and cost-per-role through
-                  automation and AI screening.
-                </p>
-              </>
-            )}
+            <h2 className={`text-xl font-semibold mb-2 ${popupMessage.color}`}>
+              {popupMessage.title}
+            </h2>
+            <p className="text-gray-700 mb-4">{popupMessage.text}</p>
             <button
               onClick={handleClose}
               className="mt-4 bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-md"
