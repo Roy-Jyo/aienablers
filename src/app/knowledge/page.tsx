@@ -24,7 +24,7 @@ export default function Knowledge() {
         Knowledge Hub
       </h1>
       <p className="text-gray-600 mb-12 text-center">
-        Explore insights, AI recruitment trends, and guides from the RecruitAI team.
+        Explore insights, AI recruitment trends, and guides from the AIEnablers.io team.
       </p>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
