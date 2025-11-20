@@ -58,9 +58,14 @@ export default function Navbar() {
             <span className="block px-6 py-2 text-gray-400 font-medium cursor-not-allowed">
               Submit CV – Coming Soon
             </span>
-            <span className="block px-6 py-2 text-gray-400 font-medium cursor-not-allowed">
-              Knowledge Base – Coming Soon
-            </span>
+            <Link
+                href="/knowledge"
+                className="block px-6 py-2 text-gray-700 hover:text-blue-600 font-medium transition"
+                onClick={() => setMenuOpen(false)}
+              >
+                Knowledge Base
+              </Link>
+           
           </motion.div>
         )}
       </AnimatePresence>
