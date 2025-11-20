@@ -1,13 +1,15 @@
 export default function Knowledge() {
   const topics = [
-    { title: "AI in Recruitment", desc: "Learn how RecruitAI helps transform your hiring process through AI-powered insights.", link: "#" },
-    { title: "ROI of Automation", desc: "See how automating screening and scheduling cuts costs and speeds hiring.", link: "#" },
-    { title: "Ethical AI Hiring", desc: "Explore fairness, transparency and responsible use of AI in recruitment.", link: "#" },
+    //{ title: "AI in Recruitment", desc: "Learn how RecruitAI helps transform your hiring process through AI-powered insights.", link: "#" },
+    //{ title: "ROI of Automation", desc: "Where AI Acts, and Humans Decide.", link: "#" },
+    { title: "Reshaping the future of Hiring", 
+      desc: "Explore fairness, transparency and responsible use of AI in recruitment.", 
+      link: "https://x0pa.com/blog/autonomous-hiring-ai-humans-decide/" },
     // new topics
     {
       title: "Transforming AI Recruitment in ANZ",
       desc: "A deep dive into how AI is reshaping recruitment practices across the Australian & New Zealand talent market.",
-      link: "/knowledge/transforming-ai-recruitment-in-anz",
+      link: "https://www.einpresswire.com/article/865201131/aienablers-and-x0pa-ai-partner-to-transform-recruitment-across-oceania-with-ai-solutions",
     },
     {
       title: "Autonomous Hiring",
