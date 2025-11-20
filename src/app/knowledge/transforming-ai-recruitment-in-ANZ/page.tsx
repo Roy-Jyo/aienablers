@@ -88,6 +88,27 @@ export default function TransformingAIRecruitmentANZ() {
           </p>
         </section>
 
+                {/* External reference – LinkedIn story */}
+        <section className="bg-blue-50 border border-blue-100 rounded-2xl p-6 mb-10">
+          <h2 className="text-xl font-semibold text-gray-900 mb-3">
+            As featured on LinkedIn
+          </h2>
+          <p className="text-gray-700 text-sm mb-3">
+            This topic is also highlighted in our LinkedIn story on how AIEnablers, 
+            together with X0PA, is helping organisations across ANZ modernise their 
+            recruitment with AI-driven screening and interviews.
+          </p>
+          <a
+            href="https://www.linkedin.com/posts/dapar-technologies_aienablers-x0pa-recruitmentai-activity-7394227411959087104-1hz4?utm_source=share&utm_medium=member_desktop&rcm=ACoAAAcjbWwBggI5HWxhLqpCQ-7YNhaZ01uZ7Ls"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl text-sm font-semibold shadow-md"
+          >
+            Read the LinkedIn story →
+          </a>
+        </section>
+
+
         {/* CTA */}
         <section className="bg-blue-50 border border-blue-100 rounded-2xl p-6 flex flex-col md:flex-row justify-between gap-4">
           <div>
