@@ -2,6 +2,12 @@
 
 import { useState } from 'react';
 
+declare global {
+  interface Window {
+    gtag?: (...args: unknown[]) => void;
+  }
+}
+
 export default function SubmitCV() {
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState('');
@@ -19,6 +25,12 @@ export default function SubmitCV() {
       const res = await fetch('/api/upload', { method: 'POST', body: formData });
       if (res.ok) {
         setStatus('✅ File uploaded successfully!');
+        window.gtag?.('event', 'conversion', {
+          send_to: 'AW-17911983430/rP9_CJWSle4bEMbajN1C',
+          value: 1.0,
+          currency: 'AUD',
+          transaction_id: '',
+        });
       } else {
         setStatus('❌ Upload failed.');
       }
