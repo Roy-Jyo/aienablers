@@ -3,6 +3,17 @@
 import React, { useState } from "react";
 import { actionSendDemo } from "../actions/sendDemo"; // ✅ correct relative path
 
+declare global {
+  interface Window {
+    gtag?: (...args: unknown[]) => void;
+    dataLayer?: Array<Record<string, unknown>>;
+  }
+}
+
+const getTransactionId = () =>
+  typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `${Date.now()}`;
 
 export default function DemoPage() {
   const [status, setStatus] = useState<"idle" | "pending" | "ok" | "error">("idle");
@@ -21,8 +32,29 @@ React.useEffect(() => {
     try {
       const formData = new FormData(e.currentTarget);
       const res = await actionSendDemo(formData); // ✅ calls server action
-      if (res?.ok) setStatus("ok");
-      else setStatus("error");
+      if (res?.ok) {
+        setStatus("ok");
+        const email = formData.get("email")?.toString().trim();
+        const phone = formData.get("phone")?.toString().trim();
+        if (email || phone) {
+          window.dataLayer = window.dataLayer || [];
+          window.dataLayer.push({
+            event: "book_demo_submit",
+            user_data: {
+              email: email || undefined,
+              phone_number: phone || undefined,
+            },
+          });
+        }
+        window.gtag?.("event", "conversion", {
+          send_to: "AW-17911983430/rP9_CJWSle4bEMbajN1C",
+          value: 1.0,
+          currency: "AUD",
+          transaction_id: getTransactionId(),
+        });
+      } else {
+        setStatus("error");
+      }
     } catch (err) {
       console.error(err);
       setStatus("error");
