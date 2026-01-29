@@ -1,5 +1,6 @@
 import './globals.css';
 import Navbar from '@/components/Navbar';
+import Ticker from '@/components/Ticker';
 
 export const metadata = {
   title: 'AI Enablers RaaS | AI-Enabled Recruitment',
@@ -58,6 +59,7 @@ export default function RootLayout({
         </noscript>
         {/* End Google Tag Manager (noscript) */}
 
+        <Ticker />
         <Navbar />
         <main>{children}</main>
         <footer className="py-8 text-center text-sm text-gray-500 bg-gray-100 mt-16">
