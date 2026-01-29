@@ -18,7 +18,7 @@ export default function RootLayout({
     <html lang="en">
       <head>
         {/* Google Tag Manager */}
-        <Script id="gtm-loader" strategy="afterInteractive">
+        <Script id="gtm-loader" strategy="beforeInteractive">
           {`
             (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
             new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -31,9 +31,9 @@ export default function RootLayout({
         {/* Google tag (gtag.js) */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=AW-17911983430"
-          strategy="afterInteractive"
+          strategy="beforeInteractive"
         />
-        <Script id="gtag-config" strategy="afterInteractive">
+        <Script id="gtag-config" strategy="beforeInteractive">
           {`
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
