@@ -23,8 +23,8 @@ export default function CostSavingCalculator() {
         setShowPopup(true);
       } else {
         setPopupMessage({
-          title: "You could save up to 50%! 💡",
-          text: "AIEnablers can help you save up to 50% on recruitment costs through automation and smarter screening.",
+          title: "Significant savings ahead 💡",
+          text: "You can have a significant cost saving with AIEnablers service.",
           color: "text-blue-600",
         });
         setShowPopup(true);
@@ -69,6 +69,16 @@ export default function CostSavingCalculator() {
             <h2 className={`text-xl font-semibold mb-2 ${popupMessage.color}`}>
               {popupMessage.title}
             </h2>
+            {cost !== null && cost > 500 && (
+              <div className="mx-auto mb-4 flex h-32 w-32 items-center justify-center rounded-full bg-white shadow-inner">
+                <div className="relative flex h-28 w-28 items-center justify-center rounded-full bg-slate-100">
+                  <div className="absolute inset-0 rounded-full bg-[conic-gradient(theme(colors.blue.500)_0deg_220deg,theme(colors.slate.200)_220deg_360deg)]" />
+                  <div className="relative z-10 rounded-full bg-white px-4 py-2 text-sm font-semibold text-blue-700 shadow">
+                    Savings
+                  </div>
+                </div>
+              </div>
+            )}
             <p className="text-gray-700 mb-4">{popupMessage.text}</p>
             <button
               onClick={handleClose}
