@@ -42,6 +42,55 @@ export default function RootLayout({
         </noscript>
         {/* End Google Tag Manager (noscript) */}
 
+        <div className="border-b bg-white">
+          <div className="mx-auto flex max-w-7xl items-center gap-6 px-6 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
+            <span className="shrink-0 rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-bold text-blue-700">
+              Announcement
+            </span>
+            <div className="relative flex-1 overflow-hidden">
+              <div className="ticker-track flex w-max items-center gap-8">
+                {[
+                  {
+                    label: "Press release: AIEnablers + X0PA partnership",
+                    href: "https://www.einpresswire.com/article/865201131/aienablers-and-x0pa-ai-partner-to-transform-recruitment-across-oceania-with-ai-solutions",
+                  },
+                  { label: "Fill open roles faster from $500" },
+                  { label: "Calculate cost savings", href: "/cost-saving" },
+                ]
+                  .concat([
+                    {
+                      label: "Press release: AIEnablers + X0PA partnership",
+                      href: "https://www.einpresswire.com/article/865201131/aienablers-and-x0pa-ai-partner-to-transform-recruitment-across-oceania-with-ai-solutions",
+                    },
+                    { label: "Fill open roles faster from $500" },
+                    { label: "Calculate cost savings", href: "/cost-saving" },
+                  ])
+                  .map((item, index) => {
+                    const content = item.href ? (
+                      <a
+                        href={item.href}
+                        className="hover:text-blue-600 focus:outline-none focus-visible:underline"
+                        rel={item.href.startsWith("http") ? "noreferrer" : undefined}
+                        target={item.href.startsWith("http") ? "_blank" : undefined}
+                      >
+                        {item.label}
+                      </a>
+                    ) : (
+                      <span>{item.label}</span>
+                    );
+
+                    return (
+                      <span key={`${item.label}-${index}`} className="ticker-item flex items-center gap-2">
+                        <span className="inline-block h-1.5 w-1.5 rounded-full bg-blue-600" />
+                        {content}
+                      </span>
+                    );
+                  })}
+              </div>
+            </div>
+          </div>
+        </div>
+
         <Navbar />
         <main>{children}</main>
         <footer className="py-8 text-center text-sm text-gray-500 bg-gray-100 mt-16">
