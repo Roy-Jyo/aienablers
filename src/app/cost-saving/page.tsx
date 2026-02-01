@@ -14,20 +14,21 @@ export default function CostSavingCalculator() {
     e.preventDefault();
 
     if (cost !== null) {
-      if (cost <= 1750) {
+      if (cost <= 500) {
         setPopupMessage({
           title: "You're already cost-efficient! 🎉",
-          text: "Your recruitment process is already performing at an efficient level compared to market standards. That’s impressive — and with AIEnablers RaaS, you can still enhance scalability, automation, and time-to-hire.",
+          text: "You’re already efficiently managing role fulfilment at $500 or less per role.",
           color: "text-green-600",
         });
+        setShowPopup(true);
       } else {
         setPopupMessage({
           title: "You could save up to 50%! 💡",
-          text: "Your current recruitment cost could be significantly reduced through AI automation. AIEnablers helps streamline job posting, screening, and interviews for faster, smarter, and bias-free hiring.",
+          text: "AIEnablers can help you save up to 50% on recruitment costs through automation and smarter screening.",
           color: "text-blue-600",
         });
+        setShowPopup(true);
       }
-      setShowPopup(true);
     }
   };
 
