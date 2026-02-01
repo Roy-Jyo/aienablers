@@ -9,7 +9,7 @@ export default function DemoPage() {
   const siteName = process.env.SITE_NAME || "Recruitment as a Service";
   const tickerItems = [
     { label: "Press release: AIEnablers + X0PA partnership", href: "https://www.einpresswire.com/article/865201131/aienablers-and-x0pa-ai-partner-to-transform-recruitment-across-oceania-with-ai-solutions" },
-    { label: "Fill roles for $500" },
+    { label: "Fill roles from $500" },
     { label: "Book a demo", href: "#demo" },
     { label: "One-touch job posting to leading boards" },
     { label: "NLP-driven resume screening in minutes" },
