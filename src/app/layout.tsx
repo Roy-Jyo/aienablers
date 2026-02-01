@@ -13,8 +13,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" data-build={process.env.VERCEL_GIT_COMMIT_SHA ?? 'local'}>
       <head>
+        <meta
+          name="build"
+          content={process.env.VERCEL_GIT_COMMIT_SHA ?? 'local'}
+        />
         {/* Google Tag Manager */}
         <script
           dangerouslySetInnerHTML={{
