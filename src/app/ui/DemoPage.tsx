@@ -8,11 +8,14 @@ export default function DemoPage() {
   const [status, setStatus] = useState<"idle" | "pending" | "ok" | "error">("idle");
   const siteName = process.env.SITE_NAME || "Recruitment as a Service";
   const tickerItems = [
-    "One-touch job posting to leading boards",
-    "NLP-driven resume screening in minutes",
-    "Bias-aware shortlists for fairer hiring",
-    "Automated interview scheduling and insights",
-    "ANZ market benchmarks for faster decisions",
+    { label: "Press release: AIEnablers + X0PA partnership", href: "https://www.einpresswire.com/article/865201131/aienablers-and-x0pa-ai-partner-to-transform-recruitment-across-oceania-with-ai-solutions" },
+    { label: "Fill roles for $500" },
+    { label: "Book a demo", href: "#demo" },
+    { label: "One-touch job posting to leading boards" },
+    { label: "NLP-driven resume screening in minutes" },
+    { label: "Bias-aware shortlists for fairer hiring" },
+    { label: "Automated interview scheduling and insights" },
+    { label: "ANZ market benchmarks for faster decisions" },
   ];
 
 React.useEffect(() => {
@@ -99,12 +102,27 @@ React.useEffect(() => {
             </span>
             <div className="relative flex-1 overflow-hidden">
               <div className="ticker-track flex w-max items-center gap-8 text-sm font-medium uppercase tracking-wide text-slate-600">
-                {[...tickerItems, ...tickerItems].map((item, index) => (
-                  <span key={`${item}-${index}`} className="ticker-item flex items-center gap-3">
-                    <span className="inline-block h-2 w-2 rounded-full bg-blue-600" />
-                    {item}
-                  </span>
-                ))}
+                {[...tickerItems, ...tickerItems].map((item, index) => {
+                  const content = item.href ? (
+                    <a
+                      href={item.href}
+                      className="hover:text-blue-600 focus:outline-none focus-visible:underline"
+                      rel={item.href.startsWith("http") ? "noreferrer" : undefined}
+                      target={item.href.startsWith("http") ? "_blank" : undefined}
+                    >
+                      {item.label}
+                    </a>
+                  ) : (
+                    <span>{item.label}</span>
+                  );
+
+                  return (
+                    <span key={`${item.label}-${index}`} className="ticker-item flex items-center gap-3">
+                      <span className="inline-block h-2 w-2 rounded-full bg-blue-600" />
+                      {content}
+                    </span>
+                  );
+                })}
               </div>
             </div>
           </div>
