@@ -42,9 +42,9 @@ export default function RootLayout({
         </noscript>
         {/* End Google Tag Manager (noscript) */}
 
-        <div className="border-b bg-white">
-          <div className="mx-auto flex max-w-7xl items-center gap-6 px-6 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
-            <span className="shrink-0 rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-bold text-blue-700">
+        <div className="border-b border-blue-700 bg-blue-600">
+          <div className="mx-auto flex max-w-7xl items-center gap-6 px-6 py-2 text-xs font-semibold uppercase tracking-wide text-blue-50">
+            <span className="shrink-0 rounded-full bg-blue-500/70 px-2 py-0.5 text-[11px] font-bold text-white">
               Announcement
             </span>
             <div className="relative flex-1 overflow-hidden">
@@ -69,7 +69,7 @@ export default function RootLayout({
                     const content = item.href ? (
                       <a
                         href={item.href}
-                        className="hover:text-blue-600 focus:outline-none focus-visible:underline"
+                        className="hover:text-white focus:outline-none focus-visible:underline"
                         rel={item.href.startsWith("http") ? "noreferrer" : undefined}
                         target={item.href.startsWith("http") ? "_blank" : undefined}
                       >
@@ -81,7 +81,7 @@ export default function RootLayout({
 
                     return (
                       <span key={`${item.label}-${index}`} className="ticker-item flex items-center gap-2">
-                        <span className="inline-block h-1.5 w-1.5 rounded-full bg-blue-600" />
+                        <span className="inline-block h-1.5 w-1.5 rounded-full bg-white" />
                         {content}
                       </span>
                     );
