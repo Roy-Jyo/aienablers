@@ -17,16 +17,6 @@ export default function DemoPage() {
     { label: "Automated interview scheduling and insights" },
     { label: "ANZ market benchmarks for faster decisions" },
   ];
-  const clientLogos = [
-    "NUS",
-    "SMU",
-    "GovTech",
-    "DBS",
-    "Singtel",
-    "Grab",
-    "AIA",
-    "Hays",
-  ];
 
 React.useEffect(() => {
   if (typeof window !== "undefined") {
@@ -103,23 +93,24 @@ React.useEffect(() => {
         </div>
       </section>
 
-      {/* CLIENT LOGO TICKER */}
-      <section className="bg-white">
-        <div className="mx-auto max-w-7xl px-6 py-8">
-          <p className="text-center text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">
-            Trusted by teams like
-          </p>
-          <div className="mt-6 overflow-hidden">
-            <div className="ticker-track flex w-max items-center gap-6">
-              {[...clientLogos, ...clientLogos].map((client, index) => (
-                <div
-                  key={`${client}-${index}`}
-                  className="ticker-item flex items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-2 text-sm font-semibold text-slate-600 shadow-sm"
-                >
-                  {client}
-                </div>
-              ))}
-            </div>
+      {/* CLIENT LOGO STRIP */}
+      <section className="logo-strip bg-white" aria-label="Trusted by">
+        <div className="mx-auto max-w-7xl px-6">
+          <div className="logo-strip__inner">
+            <img src="PASTE_URL_KRISFLYER" alt="KrisFlyer" loading="lazy" />
+            <img src="PASTE_URL_FAIRPRICE" alt="NTUC FairPrice" loading="lazy" />
+            <img src="PASTE_URL_PSA" alt="PSA Singapore" loading="lazy" />
+            <img src="PASTE_URL_GIANT" alt="Giant" loading="lazy" />
+            <img src="PASTE_URL_WSG" alt="Workforce Singapore" loading="lazy" />
+            <img src="PASTE_URL_IMDA" alt="IMDA" loading="lazy" />
+            <img
+              src="PASTE_URL_SIT"
+              alt="Singapore Institute of Technology"
+              loading="lazy"
+            />
+            <img src="PASTE_URL_NUS" alt="National University of Singapore" loading="lazy" />
+            <img src="PASTE_URL_TECHMAHINDRA" alt="Tech Mahindra" loading="lazy" />
+            <img src="PASTE_URL_PANASONIC" alt="Panasonic" loading="lazy" />
           </div>
         </div>
       </section>
