@@ -17,6 +17,16 @@ export default function DemoPage() {
     { label: "Automated interview scheduling and insights" },
     { label: "ANZ market benchmarks for faster decisions" },
   ];
+  const clientLogos = [
+    "NUS",
+    "SMU",
+    "GovTech",
+    "DBS",
+    "Singtel",
+    "Grab",
+    "AIA",
+    "Hays",
+  ];
 
 React.useEffect(() => {
   if (typeof window !== "undefined") {
@@ -88,6 +98,27 @@ React.useEffect(() => {
               <p className="mt-4 text-sm text-slate-500">
                 Typical savings from automation benchmarks (ANZ average).
               </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CLIENT LOGO TICKER */}
+      <section className="bg-white">
+        <div className="mx-auto max-w-7xl px-6 py-8">
+          <p className="text-center text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">
+            Trusted by teams like
+          </p>
+          <div className="mt-6 overflow-hidden">
+            <div className="ticker-track flex w-max items-center gap-6">
+              {[...clientLogos, ...clientLogos].map((client, index) => (
+                <div
+                  key={`${client}-${index}`}
+                  className="ticker-item flex items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-2 text-sm font-semibold text-slate-600 shadow-sm"
+                >
+                  {client}
+                </div>
+              ))}
             </div>
           </div>
         </div>
