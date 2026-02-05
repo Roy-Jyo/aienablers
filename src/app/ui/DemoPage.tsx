@@ -7,6 +7,16 @@ import { actionSendDemo } from "../actions/sendDemo"; // ✅ correct relative pa
 export default function DemoPage() {
   const [status, setStatus] = useState<"idle" | "pending" | "ok" | "error">("idle");
   const siteName = process.env.SITE_NAME || "Recruitment as a Service";
+  const tickerItems = [
+    "Google",
+    "Microsoft",
+    "Amazon",
+    "Meta",
+    "Atlassian",
+    "Canva",
+    "Accenture",
+    "Deloitte",
+  ];
 
 React.useEffect(() => {
   if (typeof window !== "undefined") {
@@ -31,6 +41,22 @@ React.useEffect(() => {
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-50 to-white text-slate-900">
+      {/* TOP TICKER */}
+      <section className="border-y border-slate-200 bg-white/80 py-3">
+        <div className="ticker-wrap">
+          <div className="ticker-track">
+            {[...tickerItems, ...tickerItems].map((company, i) => (
+              <span
+                key={`${company}-${i}`}
+                className="mx-5 inline-block text-sm font-medium text-slate-600"
+              >
+                {company}
+              </span>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* HERO SECTION */}
       <section className="mx-auto max-w-7xl px-6 pt-16 pb-10 lg:pt-24">
         <div className="grid items-center gap-10 lg:grid-cols-2">
