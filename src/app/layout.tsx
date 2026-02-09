@@ -1,5 +1,7 @@
 import './globals.css';
 import Navbar from '@/components/Navbar';
+import TickerWrapper from '@/components/TickerWrapper';
+import Script from 'next/script';
 
 export const metadata = {
   title: 'AI Enablers RaaS | AI-Enabled Recruitment',
@@ -16,18 +18,30 @@ export default function RootLayout({
     <html lang="en">
       <head>
         {/* Google Tag Manager */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-              new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-              j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-              'https://www.googletagmanager.com/gtm.js?id=' + i + dl;f.parentNode.insertBefore(j,f);
-              })(window,document,'script','dataLayer','GTM-MKW78ZBX');
-            `,
-          }}
-        />
+        <Script id="gtm-loader" strategy="beforeInteractive">
+          {`
+            (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+            new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+            j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+            'https://www.googletagmanager.com/gtm.js?id=' + i + dl;f.parentNode.insertBefore(j,f);
+            })(window,document,'script','dataLayer','GTM-MKW78ZBX');
+          `}
+        </Script>
         {/* End Google Tag Manager */}
+        {/* Google tag (gtag.js) */}
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=AW-17911983430"
+          strategy="beforeInteractive"
+        />
+        <Script id="gtag-config" strategy="beforeInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'AW-17911983430');
+          `}
+        </Script>
+        {/* End Google tag (gtag.js) */}
       </head>
 
       <body className="bg-gray-50 text-gray-900 font-sans">
@@ -42,6 +56,7 @@ export default function RootLayout({
         </noscript>
         {/* End Google Tag Manager (noscript) */}
 
+        <TickerWrapper />
         <Navbar />
         <main>{children}</main>
         <footer className="py-8 text-center text-sm text-gray-500 bg-gray-100 mt-16">
