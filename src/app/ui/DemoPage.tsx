@@ -7,6 +7,16 @@ import { actionSendDemo } from "../actions/sendDemo"; // ✅ correct relative pa
 export default function DemoPage() {
   const [status, setStatus] = useState<"idle" | "pending" | "ok" | "error">("idle");
   const siteName = process.env.SITE_NAME || "Recruitment as a Service";
+  const tickerItems = [
+    { label: "Press release: AIEnablers + X0PA partnership", href: "https://www.einpresswire.com/article/865201131/aienablers-and-x0pa-ai-partner-to-transform-recruitment-across-oceania-with-ai-solutions" },
+    { label: "Fill roles from $500" },
+    { label: "Book a demo", href: "#demo" },
+    { label: "One-touch job posting to leading boards" },
+    { label: "NLP-driven resume screening in minutes" },
+    { label: "Bias-aware shortlists for fairer hiring" },
+    { label: "Automated interview scheduling and insights" },
+    { label: "ANZ market benchmarks for faster decisions" },
+  ];
 
 React.useEffect(() => {
   if (typeof window !== "undefined") {
@@ -78,6 +88,64 @@ React.useEffect(() => {
               <p className="mt-4 text-sm text-slate-500">
                 Typical savings from automation benchmarks (ANZ average).
               </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CLIENT LOGO STRIP */}
+      <section className="logo-strip bg-white" aria-label="Trusted by">
+        <div className="mx-auto max-w-7xl px-6">
+          <div className="logo-strip__inner">
+            <img src="PASTE_URL_KRISFLYER" alt="KrisFlyer" loading="lazy" />
+            <img src="PASTE_URL_FAIRPRICE" alt="NTUC FairPrice" loading="lazy" />
+            <img src="PASTE_URL_PSA" alt="PSA Singapore" loading="lazy" />
+            <img src="PASTE_URL_GIANT" alt="Giant" loading="lazy" />
+            <img src="PASTE_URL_WSG" alt="Workforce Singapore" loading="lazy" />
+            <img src="PASTE_URL_IMDA" alt="IMDA" loading="lazy" />
+            <img
+              src="PASTE_URL_SIT"
+              alt="Singapore Institute of Technology"
+              loading="lazy"
+            />
+            <img src="PASTE_URL_NUS" alt="National University of Singapore" loading="lazy" />
+            <img src="PASTE_URL_TECHMAHINDRA" alt="Tech Mahindra" loading="lazy" />
+            <img src="PASTE_URL_PANASONIC" alt="Panasonic" loading="lazy" />
+          </div>
+        </div>
+      </section>
+
+      {/* SCROLLING TICKER */}
+      <section className="border-y bg-white/70">
+        <div className="mx-auto max-w-7xl px-6 py-4">
+          <div className="flex items-center gap-6">
+            <span className="shrink-0 rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-blue-700">
+              Latest
+            </span>
+            <div className="relative flex-1 overflow-hidden">
+              <div className="ticker-track flex w-max items-center gap-8 text-sm font-medium uppercase tracking-wide text-slate-600">
+                {[...tickerItems, ...tickerItems].map((item, index) => {
+                  const content = item.href ? (
+                    <a
+                      href={item.href}
+                      className="hover:text-blue-600 focus:outline-none focus-visible:underline"
+                      rel={item.href.startsWith("http") ? "noreferrer" : undefined}
+                      target={item.href.startsWith("http") ? "_blank" : undefined}
+                    >
+                      {item.label}
+                    </a>
+                  ) : (
+                    <span>{item.label}</span>
+                  );
+
+                  return (
+                    <span key={`${item.label}-${index}`} className="ticker-item flex items-center gap-3">
+                      <span className="inline-block h-2 w-2 rounded-full bg-blue-600" />
+                      {content}
+                    </span>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>

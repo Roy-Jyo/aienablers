@@ -24,3 +24,56 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+.logo-strip {
+  padding: 18px 0;
+}
+
+.logo-strip__inner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px 28px;
+  align-items: center;
+  justify-content: center;
+}
+
+.logo-strip__inner img {
+  height: 34px;
+  width: auto;
+  opacity: 0.9;
+  filter: grayscale(100%);
+  transition: opacity 0.15s ease, filter 0.15s ease;
+}
+
+.logo-strip__inner img:hover {
+  opacity: 1;
+  filter: none;
+}
+
+@keyframes ticker-scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.ticker-track {
+  animation: ticker-scroll 28s linear infinite;
+  will-change: transform;
+}
+
+.ticker-item {
+  white-space: nowrap;
+}
+
+.ticker-track:hover {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ticker-track {
+    animation: none;
+  }
+}
