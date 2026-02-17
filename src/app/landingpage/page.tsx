@@ -265,7 +265,8 @@ export default function Page() {
 
 const styles: Record<string, React.CSSProperties> = {
   main: {
-    maxWidth: 1120,
+    //maxWidth: 1120,
+    maxWidth: 720,
     margin: "0 auto",
     padding: "48px 20px",
     background: "#ffffff",
@@ -300,14 +301,15 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#111",
   },
   dot: { opacity: 0.6 },
-  h1: { fontSize: 44, lineHeight: 1.12, margin: 0 },
+  h1: { fontSize: 36, lineHeight: 1.12, margin: 0 },
   h2: { fontSize: 28, margin: "0 0 10px 0" },
   h3: { margin: "0 0 8px 0", fontSize: 16 },
-  lead: { fontSize: 18, lineHeight: 1.65, margin: 0, maxWidth: 900 },
-  p: { fontSize: 16, lineHeight: 1.75, margin: 0, maxWidth: 900 },
+  //lead: { fontSize: 18, lineHeight: 1.65, margin: 0, maxWidth: 900 },
+  lead: { fontSize: 18, lineHeight: 1.65, margin: 0, maxWidth: 720 },
+  p: { fontSize: 16, lineHeight: 1.75, margin: 0, maxWidth: 720 },
   ul: { lineHeight: 1.9, marginTop: 12 },
-  ol: { lineHeight: 1.9, maxWidth: 980, marginTop: 10 },
-  section: { marginTop: 46 },
+  ol: { lineHeight: 1.9, maxWidth: 720, marginTop: 10 },
+  section: { marginTop: 80 },
   ctaRow: { display: "flex", gap: 12, flexWrap: "wrap", marginTop: 10, alignItems: "center" },
   primaryBtn: {
     padding: "12px 16px",
