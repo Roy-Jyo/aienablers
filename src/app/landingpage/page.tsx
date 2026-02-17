@@ -20,84 +20,226 @@ export default function LandingPage() {
         }}
       >
         {/* HERO */}
-        <section style={{ marginBottom: 100 }}>
-          <div
-            style={{
-              fontSize: 13,
-              fontWeight: 600,
-              color: "#64748b",
-              marginBottom: 16,
-            }}
-          >
-            AI Enablers RaaS • Powered by X0PA
-          </div>
-
-          <h1
-            style={{
-              fontSize: 40,
-              lineHeight: 1.2,
-              fontWeight: 600,
-              marginBottom: 20,
-              letterSpacing: "-0.02em",
-            }}
-          >
-            AI-Native Recruitment for TA Teams
-          </h1>
-
-          <p
-            style={{
-              fontSize: 18,
-              color: "#475569",
-              maxWidth: 700,
-              lineHeight: 1.6,
-              marginBottom: 30,
-            }}
-          >
-            Powered by <strong>Generative</strong> and{" "}
-            <strong>Agentic AI</strong>.  
-            Hire in <strong>days</strong> — not months.
-          </p>
-
-          <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-            <Link
-              href="/#demo"
+        <section
+          style={{
+            marginBottom: 90,
+            display: "grid",
+            gridTemplateColumns: "1.35fr 0.65fr",
+            gap: 28,
+            alignItems: "start",
+          }}
+        >
+          {/* Left: main message */}
+          <div>
+            <div
               style={{
-                backgroundColor: "#0f172a",
-                color: "#ffffff",
-                padding: "14px 20px",
-                borderRadius: 8,
+                fontSize: 13,
                 fontWeight: 600,
-                textDecoration: "none",
+                color: "#64748b",
+                marginBottom: 16,
               }}
             >
-              Book a Demo
-            </Link>
+              AI Enablers RaaS • Powered by X0PA
+            </div>
 
-            <Link
-              href="/#demo"
+            <h1
               style={{
-                backgroundColor: "#2563eb",
-                color: "#ffffff",
-                padding: "14px 20px",
-                borderRadius: 8,
-                fontWeight: 700,
-                textDecoration: "none",
+                fontSize: 40,
+                lineHeight: 1.2,
+                fontWeight: 600,
+                marginBottom: 18,
+                letterSpacing: "-0.02em",
               }}
             >
-              Get in touch to try it out. It is free!
-            </Link>
+              AI-Native Recruitment for TA Teams
+            </h1>
+
+            <p
+              style={{
+                fontSize: 18,
+                color: "#475569",
+                maxWidth: 700,
+                lineHeight: 1.6,
+                marginBottom: 26,
+              }}
+            >
+              Powered by <strong>Generative</strong> and <strong>Agentic AI</strong>. Hire in{" "}
+              <strong>days</strong> — not months.
+            </p>
+
+            <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+              <Link
+                href="/#demo"
+                style={{
+                  backgroundColor: "#0f172a",
+                  color: "#ffffff",
+                  padding: "14px 20px",
+                  borderRadius: 10,
+                  fontWeight: 600,
+                  textDecoration: "none",
+                }}
+              >
+                Book a Demo
+              </Link>
+
+              <Link
+                href="/#demo"
+                style={{
+                  backgroundColor: "#2563eb",
+                  color: "#ffffff",
+                  padding: "14px 20px",
+                  borderRadius: 10,
+                  fontWeight: 700,
+                  textDecoration: "none",
+                }}
+              >
+                Get in touch to try it out. It is free!
+              </Link>
+            </div>
+
+            <div
+              style={{
+                marginTop: 16,
+                display: "flex",
+                gap: 10,
+                flexWrap: "wrap",
+                fontSize: 13,
+                color: "#94a3b8",
+              }}
+            >
+              <span>Enterprise-grade security</span>
+              <span>•</span>
+              <span>Ethical AI</span>
+              <span>•</span>
+              <span>PII safeguards</span>
+              <span>•</span>
+              <span>ISO-aligned controls</span>
+            </div>
           </div>
+
+          {/* Right: floating comparison (subtle) */}
+          <aside
+            style={{
+              position: "relative",
+              background: "linear-gradient(180deg, rgba(248,250,252,1) 0%, rgba(255,255,255,1) 100%)",
+              borderRadius: 16,
+              padding: 18,
+              boxShadow: "0 10px 30px rgba(15, 23, 42, 0.06)",
+              border: "1px solid rgba(226,232,240,0.7)",
+            }}
+          >
+            <div
+              style={{
+                fontSize: 12,
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                color: "#94a3b8",
+                marginBottom: 12,
+              }}
+            >
+              Quick comparison
+            </div>
+
+            <div style={{ display: "grid", gap: 12 }}>
+              {/* X0PA */}
+              <div style={{ display: "grid", gap: 4 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "baseline",
+                    gap: 10,
+                  }}
+                >
+                  <div style={{ fontSize: 13, color: "#0f172a", fontWeight: 700 }}>
+                    AIEnablers (X0PA)
+                  </div>
+                  <div style={{ fontSize: 12, color: "#2563eb", fontWeight: 700 }}>
+                    AI-native
+                  </div>
+                </div>
+                <div style={{ fontSize: 13, color: "#475569", lineHeight: 1.5 }}>
+                  ML + NLP ranking, agentic workflow automation, optional AI interviews.
+                </div>
+              </div>
+
+              <div
+                style={{
+                  height: 1,
+                  background: "rgba(226,232,240,0.9)",
+                  margin: "4px 0",
+                }}
+              />
+
+              {/* Bullhorn */}
+              <div style={{ display: "grid", gap: 4 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "baseline",
+                    gap: 10,
+                  }}
+                >
+                  <div style={{ fontSize: 13, color: "#0f172a", fontWeight: 600 }}>
+                    Bullhorn
+                  </div>
+                  <div style={{ fontSize: 12, color: "#64748b", fontWeight: 600 }}>
+                    CRM + ATS
+                  </div>
+                </div>
+                <div style={{ fontSize: 13, color: "#475569", lineHeight: 1.5 }}>
+                  Strong recruiter CRM and pipeline management; typically task-based automation.
+                </div>
+              </div>
+
+              <div
+                style={{
+                  height: 1,
+                  background: "rgba(226,232,240,0.9)",
+                  margin: "4px 0",
+                }}
+              />
+
+              {/* JobAdder */}
+              <div style={{ display: "grid", gap: 4 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "baseline",
+                    gap: 10,
+                  }}
+                >
+                  <div style={{ fontSize: 13, color: "#0f172a", fontWeight: 600 }}>
+                    JobAdder
+                  </div>
+                  <div style={{ fontSize: 12, color: "#64748b", fontWeight: 600 }}>
+                    ATS + workflow
+                  </div>
+                </div>
+                <div style={{ fontSize: 13, color: "#475569", lineHeight: 1.5 }}>
+                  Flexible ATS and job board workflows; typically rules/triggers vs agentic AI.
+                </div>
+              </div>
+            </div>
+
+            <div
+              style={{
+                marginTop: 14,
+                fontSize: 12,
+                color: "#94a3b8",
+                lineHeight: 1.4,
+              }}
+            >
+              Designed to be subtle: a quick “at a glance” view for stakeholders.
+            </div>
+          </aside>
         </section>
 
         {/* VALUE SECTION */}
-        <section style={{ marginBottom: 100 }}>
-          <h2
-            style={{
-              fontSize: 28,
-              fontWeight: 600,
-              marginBottom: 20,
-            }}
-          >
+        <section style={{ marginBottom: 90 }}>
+          <h2 style={{ fontSize: 28, fontWeight: 600, marginBottom: 18 }}>
             Why Traditional ATS Platforms Fall Short
           </h2>
 
@@ -110,8 +252,8 @@ export default function LandingPage() {
               marginBottom: 12,
             }}
           >
-            Bullhorn and JobAdder are strong ATS systems — but they rely
-            heavily on manual workflows for screening, scheduling and feedback.
+            Bullhorn and JobAdder are strong ATS systems — but they rely heavily on manual workflows for
+            screening, scheduling and feedback.
           </p>
 
           <p
@@ -122,14 +264,13 @@ export default function LandingPage() {
               lineHeight: 1.7,
             }}
           >
-            AIEnablers (powered by X0PA) automates the heavy lifting — from
-            ranking candidates to coordinating interviews — so your team can
-            focus on hiring decisions.
+            AIEnablers (powered by X0PA) automates the heavy lifting — from ranking candidates to coordinating
+            interviews — so your team can focus on hiring decisions.
           </p>
         </section>
 
         {/* FEATURES GRID */}
-        <section style={{ marginBottom: 100 }}>
+        <section style={{ marginBottom: 90 }}>
           <div
             style={{
               display: "grid",
@@ -176,24 +317,12 @@ export default function LandingPage() {
             textAlign: "center",
           }}
         >
-          <h2
-            style={{
-              fontSize: 26,
-              fontWeight: 600,
-              marginBottom: 16,
-            }}
-          >
+          <h2 style={{ fontSize: 26, fontWeight: 600, marginBottom: 14 }}>
             See the product. Not slides.
           </h2>
 
-          <p
-            style={{
-              color: "#475569",
-              marginBottom: 24,
-            }}
-          >
-            Experience AI-driven recruitment using your own live role —
-            complimentary.
+          <p style={{ color: "#475569", marginBottom: 22 }}>
+            Experience AI-driven recruitment using your own live role — complimentary.
           </p>
 
           <Link
@@ -202,9 +331,10 @@ export default function LandingPage() {
               backgroundColor: "#2563eb",
               color: "#ffffff",
               padding: "14px 22px",
-              borderRadius: 8,
+              borderRadius: 10,
               fontWeight: 700,
               textDecoration: "none",
+              display: "inline-block",
             }}
           >
             Get in touch to try it out. It is free!
@@ -216,7 +346,7 @@ export default function LandingPage() {
           style={{
             marginTop: 80,
             fontSize: 13,
-            color: "#64748b",
+            color: "#94a3b8",
             textAlign: "center",
           }}
         >
