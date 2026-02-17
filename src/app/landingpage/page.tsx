@@ -268,6 +268,8 @@ const styles: Record<string, React.CSSProperties> = {
     maxWidth: 1120,
     margin: "0 auto",
     padding: "48px 20px",
+    background: "#ffffff",
+    minHeight: "100vh",
     fontFamily:
       'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"',
     color: "#111",
