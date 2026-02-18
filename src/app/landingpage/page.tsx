@@ -1,4 +1,41 @@
+// app/landingpage/page.tsx
 import Link from "next/link";
+
+const thStyle: React.CSSProperties = {
+  padding: "14px 18px",
+  fontWeight: 600,
+  color: "#0f172a",
+  fontSize: 13,
+  whiteSpace: "nowrap",
+};
+
+const td: React.CSSProperties = {
+  padding: "14px 18px",
+  color: "#475569",
+  lineHeight: 1.6,
+  verticalAlign: "top",
+};
+
+const tdFeature: React.CSSProperties = {
+  padding: "14px 18px",
+  fontWeight: 600,
+  color: "#0f172a",
+  width: "28%",
+  minWidth: 220,
+  verticalAlign: "top",
+};
+
+const tdHighlight: React.CSSProperties = {
+  padding: "14px 18px",
+  fontWeight: 600,
+  color: "#2563eb",
+  lineHeight: 1.6,
+  verticalAlign: "top",
+};
+
+const rowDivider: React.CSSProperties = {
+  borderTop: "1px solid rgba(226,232,240,0.7)",
+};
 
 export default function LandingPage() {
   return (
@@ -63,8 +100,8 @@ export default function LandingPage() {
                 marginBottom: 26,
               }}
             >
-              Powered by <strong>Generative</strong> and <strong>Agentic AI</strong>. Hire in{" "}
-              <strong>days</strong> — not months.
+              Powered by <strong>Generative</strong> and <strong>Agentic AI</strong>. Hire
+              in <strong>days</strong> — not months.
             </p>
 
             <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
@@ -77,6 +114,7 @@ export default function LandingPage() {
                   borderRadius: 10,
                   fontWeight: 600,
                   textDecoration: "none",
+                  display: "inline-block",
                 }}
               >
                 Book a Demo
@@ -91,6 +129,7 @@ export default function LandingPage() {
                   borderRadius: 10,
                   fontWeight: 700,
                   textDecoration: "none",
+                  display: "inline-block",
                 }}
               >
                 Get in touch to try it out. It is free!
@@ -121,7 +160,8 @@ export default function LandingPage() {
           <aside
             style={{
               position: "relative",
-              background: "linear-gradient(180deg, rgba(248,250,252,1) 0%, rgba(255,255,255,1) 100%)",
+              background:
+                "linear-gradient(180deg, rgba(248,250,252,1) 0%, rgba(255,255,255,1) 100%)",
               borderRadius: 16,
               padding: 18,
               boxShadow: "0 10px 30px rgba(15, 23, 42, 0.06)",
@@ -232,7 +272,7 @@ export default function LandingPage() {
                 lineHeight: 1.4,
               }}
             >
-              Designed to be subtle: a quick “at a glance” view for stakeholders.
+              Subtle “at a glance” view for stakeholders.
             </div>
           </aside>
         </section>
@@ -252,8 +292,8 @@ export default function LandingPage() {
               marginBottom: 12,
             }}
           >
-            Bullhorn and JobAdder are strong ATS systems — but they rely heavily on manual workflows for
-            screening, scheduling and feedback.
+            Bullhorn and JobAdder are strong ATS systems — but they rely heavily on manual
+            workflows for screening, scheduling and feedback.
           </p>
 
           <p
@@ -264,9 +304,98 @@ export default function LandingPage() {
               lineHeight: 1.7,
             }}
           >
-            AIEnablers (powered by X0PA) automates the heavy lifting — from ranking candidates to coordinating
-            interviews — so your team can focus on hiring decisions.
+            AIEnablers (powered by X0PA) automates the heavy lifting — from ranking candidates to
+            coordinating interviews — so your team can focus on hiring decisions.
           </p>
+        </section>
+
+        {/* TABULAR COMPARISON */}
+        <section style={{ marginBottom: 90 }}>
+          <h2 style={{ fontSize: 28, fontWeight: 600, marginBottom: 24 }}>
+            Platform Comparison (at a glance)
+          </h2>
+
+          <div
+            style={{
+              overflowX: "auto",
+              borderRadius: 14,
+              border: "1px solid rgba(226,232,240,0.7)",
+              background: "#ffffff",
+            }}
+          >
+            <table
+              style={{
+                width: "100%",
+                borderCollapse: "collapse",
+                fontSize: 14,
+                minWidth: 860,
+              }}
+            >
+              <thead>
+                <tr style={{ backgroundColor: "#f8fafc", textAlign: "left" }}>
+                  <th style={thStyle}></th>
+                  <th style={thStyle}>AIEnablers (X0PA)</th>
+                  <th style={thStyle}>Bullhorn</th>
+                  <th style={thStyle}>JobAdder</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style={tdFeature}>Primary category</td>
+                  <td style={tdHighlight}>AI-native recruitment platform</td>
+                  <td style={td}>CRM + ATS</td>
+                  <td style={td}>ATS + workflow</td>
+                </tr>
+
+                <tr style={rowDivider}>
+                  <td style={tdFeature}>Candidate ranking</td>
+                  <td style={tdHighlight}>ML + NLP scoring and ranking</td>
+                  <td style={td}>Manual search + filters</td>
+                  <td style={td}>Keyword-based filtering</td>
+                </tr>
+
+                <tr style={rowDivider}>
+                  <td style={tdFeature}>Workflow automation</td>
+                  <td style={tdHighlight}>7 agentic AI bots</td>
+                  <td style={td}>Task-based automation</td>
+                  <td style={td}>Rules / triggers</td>
+                </tr>
+
+                <tr style={rowDivider}>
+                  <td style={tdFeature}>AI interviews</td>
+                  <td style={tdHighlight}>Built-in structured AI screening</td>
+                  <td style={td}>Not native</td>
+                  <td style={td}>Not native</td>
+                </tr>
+
+                <tr style={rowDivider}>
+                  <td style={tdFeature}>Bias mitigation</td>
+                  <td style={tdHighlight}>Integrated bias / profanity models</td>
+                  <td style={td}>Process-dependent</td>
+                  <td style={td}>Process-dependent</td>
+                </tr>
+
+                <tr style={rowDivider}>
+                  <td style={tdFeature}>Best fit</td>
+                  <td style={tdHighlight}>TA speed + scale</td>
+                  <td style={td}>Staffing & agency operations</td>
+                  <td style={td}>SMB / internal TA workflows</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div
+            style={{
+              fontSize: 12,
+              color: "#94a3b8",
+              marginTop: 12,
+              lineHeight: 1.4,
+            }}
+          >
+            Note: Capabilities can vary by configuration and add-ons. Summary reflects typical
+            positioning.
+          </div>
         </section>
 
         {/* FEATURES GRID */}
