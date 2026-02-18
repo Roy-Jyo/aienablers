@@ -37,6 +37,91 @@ const rowDivider: React.CSSProperties = {
   borderTop: "1px solid rgba(226,232,240,0.7)",
 };
 
+/**
+ * Two-line clamp that expands on hover (desktop).
+ * On touch devices, it stays clamped to avoid odd behavior.
+ */
+function HoverExpandText({
+  preview,
+  full,
+}: {
+  preview: string;
+  full: string;
+}) {
+  return (
+    <div
+      style={{
+        position: "relative",
+        maxWidth: 760,
+      }}
+    >
+      {/* Preview (clamped) */}
+      <p
+        className="hoverExpandPreview"
+        style={{
+          fontSize: 15,
+          color: "#334155",
+          lineHeight: 1.7,
+          margin: 0,
+          display: "-webkit-box",
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: "vertical" as any,
+          overflow: "hidden",
+        }}
+      >
+        {preview}
+      </p>
+
+      {/* Full text (reveals on hover) */}
+      <div
+        className="hoverExpandFull"
+        style={{
+          position: "absolute",
+          left: 0,
+          top: "calc(100% + 10px)",
+          width: "min(760px, 92vw)",
+          background: "rgba(255,255,255,0.98)",
+          border: "1px solid rgba(226,232,240,0.9)",
+          borderRadius: 12,
+          padding: 14,
+          boxShadow: "0 14px 38px rgba(15, 23, 42, 0.10)",
+          opacity: 0,
+          pointerEvents: "none",
+          transform: "translateY(-6px)",
+          transition: "opacity 140ms ease, transform 140ms ease",
+          zIndex: 20,
+        }}
+      >
+        <div
+          style={{
+            fontSize: 12,
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+            color: "#94a3b8",
+            marginBottom: 8,
+          }}
+        >
+          More detail
+        </div>
+        <p style={{ margin: 0, fontSize: 14, lineHeight: 1.7, color: "#334155" }}>
+          {full}
+        </p>
+      </div>
+
+      {/* Inline CSS to trigger hover reveal */}
+      <style>{`
+        @media (hover: hover) and (pointer: fine) {
+          .hoverExpandPreview:hover + .hoverExpandFull {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
+    </div>
+  );
+}
+
 export default function LandingPage() {
   return (
     <div
@@ -277,36 +362,28 @@ export default function LandingPage() {
           </aside>
         </section>
 
-        {/* VALUE SECTION */}
+        {/* VALUE SECTION (smaller header + 2-line preview + hover expand) */}
         <section style={{ marginBottom: 90 }}>
-          <h2 style={{ fontSize: 28, fontWeight: 600, marginBottom: 18 }}>
+          <h2
+            style={{
+              fontSize: 20,
+              fontWeight: 600,
+              marginBottom: 10,
+              color: "#0f172a",
+              letterSpacing: "-0.01em",
+            }}
+          >
             Why Traditional ATS Platforms Fall Short
           </h2>
 
-          <p
-            style={{
-              fontSize: 16,
-              color: "#334155",
-              maxWidth: 750,
-              lineHeight: 1.7,
-              marginBottom: 12,
-            }}
-          >
-            Bullhorn and JobAdder are strong ATS systems — but they rely heavily on manual
-            workflows for screening, scheduling and feedback.
-          </p>
+          <HoverExpandText
+            preview="Bullhorn and JobAdder are strong ATS systems — but they still rely heavily on manual workflows for screening, scheduling and feedback collection. AIEnablers (powered by X0PA) automates the heavy lifting so your TA team can focus on hiring decisions."
+            full="Bullhorn and JobAdder are strong ATS systems — but they often rely on manual workflows for screening, scheduling, candidate follow-ups and feedback consolidation. AIEnablers (powered by X0PA) is AI-native: ML + NLP ranking accelerates shortlisting, agentic AI bots automate coordination, and optional AI interviews help reduce hiring manager effort while supporting fairness and governance."
+          />
 
-          <p
-            style={{
-              fontSize: 16,
-              color: "#334155",
-              maxWidth: 750,
-              lineHeight: 1.7,
-            }}
-          >
-            AIEnablers (powered by X0PA) automates the heavy lifting — from ranking candidates to
-            coordinating interviews — so your team can focus on hiring decisions.
-          </p>
+          <div style={{ marginTop: 8, fontSize: 12, color: "#94a3b8" }}>
+            Hover to expand (desktop).
+          </div>
         </section>
 
         {/* TABULAR COMPARISON */}
