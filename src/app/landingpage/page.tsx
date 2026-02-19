@@ -106,6 +106,72 @@ function RowMini({
   );
 }
 
+/* ------------------ HOVER POPOVER (ON "Find out how") ------------------ */
+
+function HoverPopover({
+  triggerText,
+  popoverText,
+  href,
+}: {
+  triggerText: string;
+  popoverText: string;
+  href: string;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <span
+      style={{ position: "relative", display: "inline-block" }}
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+    >
+      <Link
+        href={href}
+        style={{
+          color: "#2563eb",
+          fontWeight: 600,
+          textDecoration: "none",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {triggerText}
+      </Link>
+
+      {open && (
+        <div
+          style={{
+            position: "absolute",
+            left: 0,
+            top: "calc(100% + 10px)",
+            width: "min(640px, 86vw)",
+            background: "#ffffff",
+            border: "1px solid rgba(226,232,240,0.9)",
+            borderRadius: 12,
+            padding: 14,
+            boxShadow: "0 14px 38px rgba(15, 23, 42, 0.12)",
+            zIndex: 30,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 12,
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+              color: "#94a3b8",
+              marginBottom: 8,
+            }}
+          >
+            Comparison context
+          </div>
+          <p style={{ margin: 0, fontSize: 14, lineHeight: 1.7, color: "#334155" }}>
+            {popoverText}
+          </p>
+        </div>
+      )}
+    </span>
+  );
+}
+
 /* ------------------ MAIN PAGE ------------------ */
 
 export default function LandingPage() {
@@ -132,6 +198,9 @@ export default function LandingPage() {
     boxShadow: "0 0 0 rgba(0,0,0,0)",
     width: "fit-content",
   };
+
+  const comparisonPopoverText =
+    "Bullhorn and JobAdder are strong ATS systems — but they often rely on manual workflows for screening, scheduling, candidate follow-ups and feedback consolidation. AIEnablers (powered by X0PA) is AI-native: ML + NLP ranking accelerates shortlisting, agentic AI bots automate coordination, and AI interviews reduce hiring manager effort while supporting fairness and governance.";
 
   return (
     <div
@@ -168,7 +237,7 @@ export default function LandingPage() {
               <strong>days</strong> — not months.
             </p>
 
-            {/* Primary CTA only (Book a Demo removed) */}
+            {/* Primary CTA only */}
             <Link
               href="/#demo"
               style={buttonBase}
@@ -185,7 +254,7 @@ export default function LandingPage() {
               Get in touch to try it out. It is free!
             </Link>
 
-            {/* Subtle Cost Information (thin blue accent line, VC tone) */}
+            {/* Subtle Cost Information */}
             <div
               style={{
                 borderLeft: "3px solid #2563eb",
@@ -258,7 +327,7 @@ export default function LandingPage() {
           </aside>
         </section>
 
-        {/* WHY ATS SECTION */}
+        {/* WHY ATS SECTION (popover on hover) */}
         <section data-reveal style={{ ...revealBase, marginBottom: 90 }}>
           <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 10, letterSpacing: "-0.01em" }}>
             Why Traditional ATS Platforms Fall Short
@@ -266,10 +335,16 @@ export default function LandingPage() {
 
           <p style={{ fontSize: 15, color: "#334155", lineHeight: 1.7, maxWidth: 760, margin: 0 }}>
             AIEnablers (Powered by X0PA) automates the heavy lifting.{" "}
-            <Link href="#comparison" style={{ color: "#2563eb", fontWeight: 600, textDecoration: "none" }}>
-              Find out how →
-            </Link>
+            <HoverPopover
+              triggerText="Find out how →"
+              popoverText={comparisonPopoverText}
+              href="#comparison"
+            />
           </p>
+
+          <div style={{ marginTop: 8, fontSize: 12, color: "#94a3b8" }}>
+            Hover “Find out how” for a quick comparison.
+          </div>
         </section>
 
         {/* TABULAR COMPARISON */}
@@ -339,10 +414,7 @@ export default function LandingPage() {
 
           <Link
             href="/#demo"
-            style={{
-              ...buttonBase,
-              margin: "0 auto",
-            }}
+            style={{ ...buttonBase, margin: "0 auto" }}
             onMouseEnter={(e) => {
               (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(-1px)";
               (e.currentTarget as HTMLAnchorElement).style.boxShadow =
