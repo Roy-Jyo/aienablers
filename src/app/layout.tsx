@@ -13,8 +13,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" data-build={process.env.VERCEL_GIT_COMMIT_SHA ?? 'local'}>
       <head>
+        <meta
+          name="build"
+          content={process.env.VERCEL_GIT_COMMIT_SHA ?? 'local'}
+        />
         {/* Google Tag Manager */}
         <script
           dangerouslySetInnerHTML={{
@@ -43,6 +47,9 @@ export default function RootLayout({
         {/* End Google Tag Manager (noscript) */}
 
         <Navbar />
+        <span className="sr-only" data-build={process.env.VERCEL_GIT_COMMIT_SHA ?? 'local'}>
+          Build: {process.env.VERCEL_GIT_COMMIT_SHA ?? 'local'}
+        </span>
         <main>{children}</main>
         <footer className="py-8 text-center text-sm text-gray-500 bg-gray-100 mt-16">
           © {new Date().getFullYear()}{' '}
