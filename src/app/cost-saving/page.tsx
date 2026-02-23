@@ -14,20 +14,21 @@ export default function CostSavingCalculator() {
     e.preventDefault();
 
     if (cost !== null) {
-      if (cost <= 1750) {
+      if (cost <= 500) {
         setPopupMessage({
           title: "You're already cost-efficient! 🎉",
-          text: "Your recruitment process is already performing at an efficient level compared to market standards. That’s impressive — and with AIEnablers RaaS, you can still enhance scalability, automation, and time-to-hire.",
+          text: "You’re already efficiently managing role fulfilment at $500 or less per role.",
           color: "text-green-600",
         });
+        setShowPopup(true);
       } else {
         setPopupMessage({
-          title: "You could save up to 50%! 💡",
-          text: "Your current recruitment cost could be significantly reduced through AI automation. AIEnablers helps streamline job posting, screening, and interviews for faster, smarter, and bias-free hiring.",
+          title: "Significant savings ahead 💡",
+          text: "You can have a significant cost saving with AIEnablers service.",
           color: "text-blue-600",
         });
+        setShowPopup(true);
       }
-      setShowPopup(true);
     }
   };
 
@@ -68,6 +69,16 @@ export default function CostSavingCalculator() {
             <h2 className={`text-xl font-semibold mb-2 ${popupMessage.color}`}>
               {popupMessage.title}
             </h2>
+            {cost !== null && cost > 500 && (
+              <div className="mx-auto mb-4 flex h-32 w-32 items-center justify-center rounded-full bg-white shadow-inner">
+                <div className="relative flex h-28 w-28 items-center justify-center rounded-full bg-slate-100">
+                  <div className="absolute inset-0 rounded-full bg-[conic-gradient(theme(colors.blue.500)_0deg_220deg,theme(colors.slate.200)_220deg_360deg)]" />
+                  <div className="relative z-10 rounded-full bg-white px-4 py-2 text-sm font-semibold text-blue-700 shadow">
+                    Savings
+                  </div>
+                </div>
+              </div>
+            )}
             <p className="text-gray-700 mb-4">{popupMessage.text}</p>
             <button
               onClick={handleClose}
