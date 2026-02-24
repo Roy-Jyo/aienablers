@@ -10,7 +10,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/knowledge",
     "/knowledge/ai-in-recruitment",
     "/knowledge/autonomous-hiring",
-    // add more KB slugs here as you publish
+
+    // ✅ Add RaaS landing page here
+    "/recruitment-as-a-service",
   ];
 
   const now = new Date();
@@ -18,7 +20,20 @@ export default function sitemap(): MetadataRoute.Sitemap {
   return routes.map((path) => ({
     url: `${SITE}${path}`,
     lastModified: now,
-    changeFrequency: path.startsWith("/knowledge") ? "monthly" : "weekly",
-    priority: path === "/knowledge" ? 0.8 : path.startsWith("/knowledge") ? 0.7 : 0.6,
+    changeFrequency:
+      path === "/recruitment-as-a-service"
+        ? "monthly"
+        : path.startsWith("/knowledge")
+        ? "monthly"
+        : "weekly",
+
+    priority:
+      path === "/recruitment-as-a-service"
+        ? 0.9
+        : path === "/knowledge"
+        ? 0.8
+        : path.startsWith("/knowledge")
+        ? 0.7
+        : 0.6,
   }));
 }

@@ -38,6 +38,12 @@ export default function Knowledge() {
       link: "https://www.einpresswire.com/article/865201131/aienablers-and-x0pa-ai-partner-to-transform-recruitment-across-oceania-with-ai-solutions",
       internal: false,
     },
+    {
+      title: "Recruitment as a Service (RaaS) in Australia",
+      desc: "A predictable, AI-powered RaaS model to reduce cost-per-hire and speed up hiring—built for Australian organisations.",
+      link: "/recruitment-as-a-service",
+      internal: true,
+    },
   ];
 
   return (

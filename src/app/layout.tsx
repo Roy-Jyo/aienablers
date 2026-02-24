@@ -1,10 +1,12 @@
 import './globals.css';
 import Navbar from '@/components/Navbar';
+import type { Metadata } from 'next';
 
-export const metadata = {
-  title: 'AI Enablers RaaS | AI-Enabled Recruitment',
+export const metadata: Metadata = {
+  title: 'Recruitment as a Service (RaaS) Australia | AIEnablers',
   description:
-    'Revolutionising recruitment with AI automation and data-driven insights.',
+    'AI-powered Recruitment as a Service (RaaS) in Australia. Reduce cost-per-hire, automate screening and scale hiring with governed, data-driven recruitment workflows.',
+  metadataBase: new URL('https://www.aienablers.io'),
 };
 
 export default function RootLayout({
@@ -43,13 +45,41 @@ export default function RootLayout({
         {/* End Google Tag Manager (noscript) */}
 
         <Navbar />
+
         <main>{children}</main>
-        <footer className="py-8 text-center text-sm text-gray-500 bg-gray-100 mt-16">
-          © {new Date().getFullYear()}{' '}
-          <span className="font-medium text-gray-600">
-            DAPAR Technologies, AIEnablers RaaS.
-          </span>{' '}
-          All rights reserved.
+
+        {/* Enhanced SEO Footer */}
+        <footer className="py-10 text-center text-sm text-gray-600 bg-gray-100 mt-16 border-t border-gray-200">
+          <div className="mb-6 space-x-6">
+            <a
+              href="/recruitment-as-a-service"
+              className="text-blue-600 hover:underline font-medium"
+            >
+              Recruitment as a Service (RaaS)
+            </a>
+
+            <a
+              href="/knowledge"
+              className="text-blue-600 hover:underline font-medium"
+            >
+              Knowledge Hub
+            </a>
+
+            <a
+              href="/privacy"
+              className="text-blue-600 hover:underline font-medium"
+            >
+              Privacy Policy
+            </a>
+          </div>
+
+          <div>
+            © {new Date().getFullYear()}{' '}
+            <span className="font-medium text-gray-700">
+              DAPAR Technologies, AIEnablers RaaS.
+            </span>{' '}
+            All rights reserved.
+          </div>
         </footer>
       </body>
     </html>
