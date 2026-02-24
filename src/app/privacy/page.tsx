@@ -174,7 +174,7 @@ export default function PrivacyPage() {
               Email:{" "}
               <a
                 className="text-blue-700 underline underline-offset-2"
-                href="mailto:royj@aienablers.io"
+                href="mailto:info@aienablers.io"
               >
                 royj@aienablers.io
               </a>
