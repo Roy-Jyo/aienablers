@@ -51,6 +51,13 @@ export default function Navbar() {
           
           {/* Always Visible Link */}
           <Link
+            href="/job-board"
+            className="text-gray-700 hover:text-blue-600 font-medium transition"
+          >
+            Job Board
+          </Link>
+          
+          <Link
             href="/cost-saving"
             className="text-gray-700 hover:text-blue-600 font-medium transition"
           >
