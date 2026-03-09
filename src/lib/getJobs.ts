@@ -14,9 +14,8 @@ function parseCsvLine(line: string): string[] {
 }
 
 export async function getJobs(): Promise<Job[]> {
-  const spreadsheetId = "1gjFPbR50dRRi1MoQa65xfn8Jq6MqkEhAeyK-OSwzXdA"
-
-  const sheetUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv&sheet=Jobs`
+  const sheetUrl =
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vTdX8eGWgCp8k2f_zkvgGP121d3ukQKz0uMPI5T_RY6F1Wc9rN9DLqIFWMcCVuRPOboUc2bQ6R36EFg/pub?gid=0&single=true&output=csv"
 
   const res = await fetch(sheetUrl, {
     next: { revalidate: 300 },
