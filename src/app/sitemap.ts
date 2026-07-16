@@ -11,7 +11,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/knowledge/ai-in-recruitment",
     "/knowledge/autonomous-hiring",
     "/job-board",
-    "/internship-search",
+    "/job-market-search",
     "/recruitment-as-a-service",
   ];
 
@@ -21,13 +21,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     url: `${SITE}${path}`,
     lastModified: now,
     changeFrequency:
-      path === "/internship-search" || path === "/job-board"
+      path === "/job-market-search" || path === "/job-board"
         ? "daily"
         : path === "/recruitment-as-a-service" || path.startsWith("/knowledge")
         ? "monthly"
         : "weekly",
     priority:
-      path === "/internship-search"
+      path === "/job-market-search"
         ? 0.9
         : path === "/recruitment-as-a-service"
         ? 0.9
