@@ -46,6 +46,13 @@ type DirectFeed =
   | { type: "smartrecruiters"; companyId: string; company: string }
   | ({ type: "workday"; company: string } & WorkdayConfig);
 
+type RegistryRow = {
+  company: string;
+  type: "greenhouse" | "lever" | "ashby" | "smartrecruiters" | "workday";
+  identifier: string;
+  enabled?: boolean;
+};
+
 function clean(value: string | null, maxLength: number) {
   return (value ?? "").trim().slice(0, maxLength);
 }
@@ -92,33 +99,68 @@ function parseWorkdayIdentifier(identifier: string): WorkdayConfig | null {
   const parts = identifier.split("|").map((part) => part.trim());
   if (parts.length < 3) return null;
   const [host, tenant, site, locale = "en-US"] = parts;
-  if (!host || !tenant || !site || !/^[a-z0-9.-]+$/i.test(host)) return null;
+  if (!host || !tenant || !site || !/^[a-z0-9.-]+$/i.test(host.replace(/^https?:\/\//, ""))) return null;
   return { host: host.replace(/^https?:\/\//, "").replace(/\/$/, ""), tenant, site, locale };
 }
 
-function parseDirectFeeds(): DirectFeed[] {
+function rowToFeed(row: RegistryRow): DirectFeed | null {
+  if (!row.company || !row.identifier || row.enabled === false || isPlaceholder(row.company) || isPlaceholder(row.identifier)) return null;
+  if (row.type === "greenhouse") return { type: "greenhouse", token: row.identifier, company: row.company };
+  if (row.type === "lever") return { type: "lever", site: row.identifier, company: row.company };
+  if (row.type === "ashby") return { type: "ashby", board: row.identifier, company: row.company };
+  if (row.type === "smartrecruiters") return { type: "smartrecruiters", companyId: row.identifier, company: row.company };
+  if (row.type === "workday") {
+    const config = parseWorkdayIdentifier(row.identifier);
+    return config ? { type: "workday", company: row.company, ...config } : null;
+  }
+  return null;
+}
+
+function parseEnvironmentFeeds(): DirectFeed[] {
   const raw = process.env.DIRECT_JOB_FEEDS;
   if (!raw) return [];
   try {
-    const feeds = JSON.parse(raw);
-    if (!Array.isArray(feeds)) return [];
-    const parsed: DirectFeed[] = [];
-    for (const feed of feeds as Record<string, unknown>[]) {
-      if (!feed || typeof feed.company !== "string" || typeof feed.type !== "string" || isPlaceholder(feed.company)) continue;
-      if (feed.type === "greenhouse" && typeof feed.token === "string" && !isPlaceholder(feed.token)) parsed.push({ type: "greenhouse", token: feed.token, company: feed.company });
-      if (feed.type === "lever" && typeof feed.site === "string" && !isPlaceholder(feed.site)) parsed.push({ type: "lever", site: feed.site, company: feed.company });
-      if (feed.type === "ashby" && typeof feed.board === "string" && !isPlaceholder(feed.board)) parsed.push({ type: "ashby", board: feed.board, company: feed.company });
-      if (feed.type === "smartrecruiters" && typeof feed.companyId === "string" && !isPlaceholder(feed.companyId)) parsed.push({ type: "smartrecruiters", companyId: feed.companyId, company: feed.company });
-      if (feed.type === "workday" && typeof feed.identifier === "string") {
-        const config = parseWorkdayIdentifier(feed.identifier);
-        if (config) parsed.push({ type: "workday", company: feed.company, ...config });
-      }
+    const rows = JSON.parse(raw);
+    if (!Array.isArray(rows)) return [];
+    const feeds: DirectFeed[] = [];
+    for (const item of rows as Record<string, unknown>[]) {
+      if (!item || typeof item.company !== "string" || typeof item.type !== "string") continue;
+      let identifier = "";
+      if (item.type === "greenhouse" && typeof item.token === "string") identifier = item.token;
+      if (item.type === "lever" && typeof item.site === "string") identifier = item.site;
+      if (item.type === "ashby" && typeof item.board === "string") identifier = item.board;
+      if (item.type === "smartrecruiters" && typeof item.companyId === "string") identifier = item.companyId;
+      if (item.type === "workday" && typeof item.identifier === "string") identifier = item.identifier;
+      const feed = rowToFeed({ company: item.company, type: item.type as RegistryRow["type"], identifier, enabled: item.enabled !== false });
+      if (feed) feeds.push(feed);
     }
-    return parsed;
+    return feeds;
   } catch (error) {
     console.error("Invalid DIRECT_JOB_FEEDS configuration", error);
     return [];
   }
+}
+
+async function loadEmployerFeeds(): Promise<{ feeds: DirectFeed[]; source: "supabase" | "vercel-environment" | "none" }> {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (url && key) {
+    try {
+      const response = await fetch(`${url}/rest/v1/career_employers?select=company,type,identifier,enabled&enabled=eq.true&order=company.asc`, {
+        headers: { apikey: key, Authorization: `Bearer ${key}` },
+        next: { revalidate: 300 },
+      });
+      if (!response.ok) throw new Error(`Supabase registry returned ${response.status}`);
+      const rows = (await response.json()) as RegistryRow[];
+      return { feeds: rows.map(rowToFeed).filter((feed): feed is DirectFeed => Boolean(feed)), source: "supabase" };
+    } catch (error) {
+      console.error("Supabase employer registry error", error);
+      const fallback = parseEnvironmentFeeds();
+      return { feeds: fallback, source: fallback.length ? "vercel-environment" : "none" };
+    }
+  }
+  const fallback = parseEnvironmentFeeds();
+  return { feeds: fallback, source: fallback.length ? "vercel-environment" : "none" };
 }
 
 function relevanceScore(job: JobResult, intent: ReturnType<typeof extractSearchIntent>) {
@@ -204,32 +246,14 @@ async function fetchWorkday(feed: Extract<DirectFeed, { type: "workday" }>): Pro
   const jobs: JobResult[] = [];
   try {
     for (let offset = 0; offset < 1000; offset += 100) {
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: { Accept: "application/json", "Content-Type": "application/json" },
-        body: JSON.stringify({ appliedFacets: {}, limit: 100, offset, searchText: "" }),
-        next: { revalidate: 900 },
-      });
+      const response = await fetch(endpoint, { method: "POST", headers: { Accept: "application/json", "Content-Type": "application/json" }, body: JSON.stringify({ appliedFacets: {}, limit: 100, offset, searchText: "" }), next: { revalidate: 900 } });
       if (!response.ok) break;
       const data = await response.json();
       const postings = Array.isArray(data.jobPostings) ? data.jobPostings : [];
       for (const job of postings as Record<string, any>[]) {
         const externalPath = typeof job.externalPath === "string" ? job.externalPath : "";
         if (!externalPath) continue;
-        jobs.push({
-          id: `workday-${feed.tenant}-${feed.site}-${externalPath}`,
-          title: job.title ?? "Job opportunity",
-          company: feed.company,
-          location: job.locationsText ?? job.location ?? "Location not listed",
-          description: [job.title, job.locationsText, job.bulletFields?.join(" ")].filter(Boolean).join(" "),
-          created: job.postedOn ?? null,
-          url: `https://${feed.host}/${feed.locale}/${feed.site}${externalPath.startsWith("/") ? externalPath : `/${externalPath}`}`,
-          salaryMin: null,
-          salaryMax: null,
-          category: job.jobFamily ?? null,
-          source: `${feed.company} careers`,
-          directEmployer: true,
-        });
+        jobs.push({ id: `workday-${feed.tenant}-${feed.site}-${externalPath}`, title: job.title ?? "Job opportunity", company: feed.company, location: job.locationsText ?? job.location ?? "Location not listed", description: [job.title, job.locationsText, job.bulletFields?.join(" ")].filter(Boolean).join(" "), created: job.postedOn ?? null, url: `https://${feed.host}/${feed.locale}/${feed.site}${externalPath.startsWith("/") ? externalPath : `/${externalPath}`}`, salaryMin: null, salaryMax: null, category: job.jobFamily ?? null, source: `${feed.company} careers`, directEmployer: true });
       }
       if (!postings.length || jobs.length >= Number(data.total ?? jobs.length)) break;
     }
@@ -314,9 +338,9 @@ export async function GET(request: NextRequest) {
   if (!naturalLanguageQuery) return NextResponse.json({ error: "Please describe the kind of role you are after." }, { status: 400 });
 
   const intent = extractSearchIntent(naturalLanguageQuery);
-  const directFeeds = parseDirectFeeds();
-  const directPromises = [...directFeeds.map(fetchDirectFeed), fetchNabCareers()];
   try {
+    const registry = await loadEmployerFeeds();
+    const directPromises = [...registry.feeds.map(fetchDirectFeed), fetchNabCareers()];
     let providerCount = 0;
     let adzunaJobs: JobResult[] = [];
     if (appId && appKey) {
@@ -332,7 +356,7 @@ export async function GET(request: NextRequest) {
     const directGroups = await Promise.all(directPromises);
     const directJobs = directGroups.flat().filter((job) => matchesLocation(job, location));
     const ranked = deduplicate([...directJobs, ...adzunaJobs]).map((job) => ({ job, score: relevanceScore(job, intent) })).filter(({ score }) => score > 0).sort((a, b) => b.score - a.score).slice(0, 25).map(({ job }) => job);
-    return NextResponse.json({ count: ranked.length, providerCount: providerCount + directJobs.length, interpretedQuery: intent.keywords, interpretedSearch: intent, directEmployerCount: ranked.filter((job) => job.directEmployer).length, activeDirectFeeds: directFeeds.length + 1, results: ranked });
+    return NextResponse.json({ count: ranked.length, providerCount: providerCount + directJobs.length, interpretedQuery: intent.keywords, interpretedSearch: intent, directEmployerCount: ranked.filter((job) => job.directEmployer).length, activeDirectFeeds: registry.feeds.length + 1, employerRegistrySource: registry.source, results: ranked });
   } catch (error) {
     console.error("Career Intelligence search error", error);
     return NextResponse.json({ error: "We could not complete the search. Please try again." }, { status: 500 });
