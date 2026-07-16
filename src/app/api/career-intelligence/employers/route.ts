@@ -30,11 +30,38 @@ function parseERecruitIdentifier(identifier: string) {
   try {
     const value = /^https?:\/\//i.test(identifier.trim()) ? identifier.trim() : `https://${identifier.trim()}`;
     const url = new URL(value);
-    if (!/^https:$/.test(url.protocol) || !url.hostname) return null;
+    if (url.protocol !== "https:") return null;
     return `${url.origin}${url.pathname.replace(/\/$/, "")}`;
   } catch {
     return null;
   }
+}
+
+function decodeHtml(value: string) {
+  return value
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function countERecruitVacancies(html: string) {
+  const links = new Set<string>();
+  const anchorPattern = /<a[^>]+href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+  let match: RegExpExecArray | null;
+  while ((match = anchorPattern.exec(html)) !== null) {
+    const href = match[1];
+    const label = decodeHtml(match[2]);
+    const looksLikeJobPath = /\/candidateapp\/jobs\/(?:view|detail|details|job|vacancy)|\/candidateapp\/job\/|jobid=|vacancyid=/i.test(href);
+    const looksLikeActionOnly = /^(apply|view|read more|details?)$/i.test(label);
+    if (looksLikeJobPath && !looksLikeActionOnly) links.add(href);
+  }
+  return links.size;
 }
 
 function authorised(request: NextRequest) {
@@ -93,35 +120,6 @@ async function readRegistry(): Promise<EmployerFeed[]> {
   return feeds.filter((feed) => !isPlaceholder(feed.company, feed.identifier));
 }
 
-function decodeHtml(value: string) {
-  return value.replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
-}
-
-async function testERecruit(baseUrl: string) {
-  const browseUrl = `${baseUrl}/candidateapp/jobs/browse`;
-  const response = await fetch(browseUrl, {
-    headers: { Accept: "text/html,application/xhtml+xml", "User-Agent": "AIEnablers-Career-Intelligence/1.0" },
-    cache: "no-store",
-    redirect: "follow",
-  });
-  if (!response.ok) return { status: "error", httpStatus: response.status, jobs: 0 };
-  const html = await response.text();
-  const links = new Set<string>();
-  const patterns = [
-    /href=["']([^"']*\/candidateapp\/jobs\/(?:view|detail|details)[^"']*)["']/gi,
-    /href=["']([^"']*\/candidateapp\/jobs\/[^"']*(?:job|vacancy)[^"']*)["']/gi,
-  ];
-  for (const pattern of patterns) {
-    let match: RegExpExecArray | null;
-    while ((match = pattern.exec(html)) !== null) links.add(match[1]);
-  }
-  const visibleText = decodeHtml(html);
-  const countMatch = visibleText.match(/(?:showing\s+\d+\s*(?:-|to)\s*\d+\s+of|total\s+jobs?\s*:?|jobs?\s*:?)[^\d]{0,10}(\d{1,6})/i);
-  const jobs = countMatch ? Number(countMatch[1]) : links.size;
-  if (!jobs && !/jobs|vacanc|career/i.test(visibleText)) return { status: "error", httpStatus: response.status, jobs: 0, message: "The page responded, but no public job listing markup was detected." };
-  return { status: "ok", httpStatus: response.status, jobs };
-}
-
 async function testFeed(feed: EmployerFeed) {
   try {
     if (feed.type === "workday") {
@@ -133,10 +131,32 @@ async function testFeed(feed: EmployerFeed) {
       const data = await response.json();
       return { status: "ok", httpStatus: response.status, jobs: Number(data.total ?? data.jobPostings?.length ?? 0) };
     }
+
     if (feed.type === "erecruit") {
       const baseUrl = parseERecruitIdentifier(feed.identifier);
-      if (!baseUrl) return { status: "error", httpStatus: 0, jobs: 0, message: "Enter a valid HTTPS eRecruit base URL." };
-      return testERecruit(baseUrl);
+      if (!baseUrl) return { status: "error", httpStatus: 0, jobs: 0, message: "Use the employer's HTTPS eRecruit base URL" };
+      const candidateUrls = [
+        `${baseUrl}/candidateapp/jobs/browse`,
+        `${baseUrl}/candidateapp/jobs`,
+        `${baseUrl}/candidateapp/Jobs/Browse`,
+      ];
+      let lastStatus = 0;
+      for (const url of candidateUrls) {
+        const response = await fetch(url, {
+          headers: { Accept: "text/html,application/xhtml+xml", "User-Agent": "AIEnablers-Career-Intelligence/1.0" },
+          cache: "no-store",
+          redirect: "follow",
+        });
+        lastStatus = response.status;
+        if (!response.ok) continue;
+        const html = await response.text();
+        const jobs = countERecruitVacancies(html);
+        if (jobs > 0) return { status: "ok", httpStatus: response.status, jobs, message: `Vacancy links discovered from ${new URL(response.url).pathname}` };
+        if (/candidateapp|vacanc|job/i.test(html)) {
+          return { status: "error", httpStatus: response.status, jobs: 0, message: "Site is reachable, but no supported vacancy links were found. The page may load jobs through JavaScript or use different markup." };
+        }
+      }
+      return { status: "error", httpStatus: lastStatus, jobs: 0, message: "Could not reach a supported eRecruit browse page." };
     }
 
     let url = "";
@@ -174,7 +194,7 @@ export async function POST(request: NextRequest) {
   if (!body.company || !body.type || !body.identifier) return NextResponse.json({ error: "Company, provider type and identifier are required." }, { status: 400 });
   if (isPlaceholder(body.company, body.identifier)) return NextResponse.json({ error: "Replace the example company and identifier with a real employer feed." }, { status: 400 });
   if (body.type === "workday" && !parseWorkdayIdentifier(body.identifier)) return NextResponse.json({ error: "Workday identifier must use host|tenant|career-site|locale." }, { status: 400 });
-  if (body.type === "erecruit" && !parseERecruitIdentifier(body.identifier)) return NextResponse.json({ error: "eRecruit identifier must be a valid public base URL." }, { status: 400 });
+  if (body.type === "erecruit" && !parseERecruitIdentifier(body.identifier)) return NextResponse.json({ error: "eRecruit identifier must be a valid HTTPS base URL." }, { status: 400 });
   const response = await fetch(`${config.url}/rest/v1/career_employers`, { method: "POST", headers: supabaseHeaders(config.key, { "Content-Type": "application/json", Prefer: "return=representation" }), body: JSON.stringify({ company: body.company.trim(), industry: body.industry?.trim() || null, type: body.type, identifier: body.identifier.trim(), enabled: body.enabled ?? true }) });
   const data = await response.json().catch(() => null);
   if (!response.ok) return NextResponse.json({ error: data?.message ?? "Could not add employer" }, { status: response.status });
@@ -189,7 +209,7 @@ export async function PATCH(request: NextRequest) {
   if (!body.id) return NextResponse.json({ error: "Employer ID is required." }, { status: 400 });
   if (isPlaceholder(body.company, body.identifier)) return NextResponse.json({ error: "Replace the example company and identifier with a real employer feed." }, { status: 400 });
   if (body.type === "workday" && !parseWorkdayIdentifier(body.identifier)) return NextResponse.json({ error: "Workday identifier must use host|tenant|career-site|locale." }, { status: 400 });
-  if (body.type === "erecruit" && !parseERecruitIdentifier(body.identifier)) return NextResponse.json({ error: "eRecruit identifier must be a valid public base URL." }, { status: 400 });
+  if (body.type === "erecruit" && !parseERecruitIdentifier(body.identifier)) return NextResponse.json({ error: "eRecruit identifier must be a valid HTTPS base URL." }, { status: 400 });
   const response = await fetch(`${config.url}/rest/v1/career_employers?id=eq.${encodeURIComponent(body.id)}`, { method: "PATCH", headers: supabaseHeaders(config.key, { "Content-Type": "application/json", Prefer: "return=representation" }), body: JSON.stringify({ company: body.company, industry: body.industry || null, type: body.type, identifier: body.identifier, enabled: body.enabled ?? true }) });
   const data = await response.json().catch(() => null);
   if (!response.ok) return NextResponse.json({ error: data?.message ?? "Could not update employer" }, { status: response.status });
