@@ -9,6 +9,22 @@ type EmployerFeed = {
   enabled?: boolean;
 };
 
+const PLACEHOLDER_VALUES = new Set([
+  "company name",
+  "company-board-token",
+  "company-site-name",
+  "company-board-name",
+  "company-identifier",
+  "employer name",
+  "employer-board-token",
+  "employer-site-name",
+]);
+
+function isPlaceholder(company: string, identifier: string) {
+  return PLACEHOLDER_VALUES.has(company.trim().toLowerCase()) ||
+    PLACEHOLDER_VALUES.has(identifier.trim().toLowerCase());
+}
+
 function authorised(request: NextRequest) {
   const configured = process.env.CAREER_ADMIN_KEY;
   const supplied = request.headers.get("x-admin-key");
@@ -26,10 +42,14 @@ function envFeeds(): EmployerFeed[] {
       const company = typeof feed.company === "string" ? feed.company : "";
       const industry = typeof feed.industry === "string" ? feed.industry : "";
       if (!company || typeof feed.type !== "string") continue;
-      if (feed.type === "greenhouse" && typeof feed.token === "string") parsed.push({ company, industry, type: "greenhouse", identifier: feed.token, enabled: true });
-      if (feed.type === "lever" && typeof feed.site === "string") parsed.push({ company, industry, type: "lever", identifier: feed.site, enabled: true });
-      if (feed.type === "ashby" && typeof feed.board === "string") parsed.push({ company, industry, type: "ashby", identifier: feed.board, enabled: true });
-      if (feed.type === "smartrecruiters" && typeof feed.companyId === "string") parsed.push({ company, industry, type: "smartrecruiters", identifier: feed.companyId, enabled: true });
+
+      let employer: EmployerFeed | null = null;
+      if (feed.type === "greenhouse" && typeof feed.token === "string") employer = { company, industry, type: "greenhouse", identifier: feed.token, enabled: true };
+      if (feed.type === "lever" && typeof feed.site === "string") employer = { company, industry, type: "lever", identifier: feed.site, enabled: true };
+      if (feed.type === "ashby" && typeof feed.board === "string") employer = { company, industry, type: "ashby", identifier: feed.board, enabled: true };
+      if (feed.type === "smartrecruiters" && typeof feed.companyId === "string") employer = { company, industry, type: "smartrecruiters", identifier: feed.companyId, enabled: true };
+
+      if (employer && !isPlaceholder(employer.company, employer.identifier)) parsed.push(employer);
     }
     return parsed;
   } catch {
@@ -54,7 +74,8 @@ async function readRegistry(): Promise<EmployerFeed[]> {
     headers: supabaseHeaders(config.key), cache: "no-store",
   });
   if (!response.ok) throw new Error(`Registry read failed: ${response.status}`);
-  return response.json();
+  const feeds = (await response.json()) as EmployerFeed[];
+  return feeds.filter((feed) => !isPlaceholder(feed.company, feed.identifier));
 }
 
 async function testFeed(feed: EmployerFeed) {
@@ -91,6 +112,7 @@ export async function POST(request: NextRequest) {
   if (!config) return NextResponse.json({ error: "Supabase is not configured. The current Vercel environment registry is read-only." }, { status: 503 });
   const body = (await request.json()) as EmployerFeed;
   if (!body.company || !body.type || !body.identifier) return NextResponse.json({ error: "Company, provider type and identifier are required." }, { status: 400 });
+  if (isPlaceholder(body.company, body.identifier)) return NextResponse.json({ error: "Replace the example company and identifier with a real employer feed." }, { status: 400 });
   const response = await fetch(`${config.url}/rest/v1/career_employers`, {
     method: "POST",
     headers: supabaseHeaders(config.key, { "Content-Type": "application/json", Prefer: "return=representation" }),
@@ -107,6 +129,7 @@ export async function PATCH(request: NextRequest) {
   if (!config) return NextResponse.json({ error: "Supabase is required to update employers." }, { status: 503 });
   const body = (await request.json()) as EmployerFeed;
   if (!body.id) return NextResponse.json({ error: "Employer ID is required." }, { status: 400 });
+  if (isPlaceholder(body.company, body.identifier)) return NextResponse.json({ error: "Replace the example company and identifier with a real employer feed." }, { status: 400 });
   const response = await fetch(`${config.url}/rest/v1/career_employers?id=eq.${encodeURIComponent(body.id)}`, {
     method: "PATCH",
     headers: supabaseHeaders(config.key, { "Content-Type": "application/json", Prefer: "return=representation" }),
