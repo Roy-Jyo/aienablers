@@ -2,14 +2,14 @@ import type { Metadata } from "next";
 import JobMarketSearchClient from "./JobMarketSearchClient";
 
 export const metadata: Metadata = {
-  title: "AI Job Market Search Australia | AIEnablers",
+  title: "Career Intelligence Australia | AIEnablers",
   description:
-    "Describe the role you are after in natural language and search live Australian job-market opportunities with AIEnablers.",
+    "Describe the role you are after in natural language and let AIEnablers Career Intelligence search live Australian job-market and direct-employer opportunities.",
   alternates: { canonical: "/job-market-search" },
   openGraph: {
-    title: "AI Job Market Search Australia | AIEnablers",
+    title: "AIEnablers Career Intelligence",
     description:
-      "Tell AIEnablers what kind of role you are after and discover relevant Australian job opportunities.",
+      "Tell AIEnablers what kind of role you are after and discover relevant opportunities across job-market and direct-employer sources.",
     url: "/job-market-search",
     siteName: "AIEnablers",
     type: "website",
