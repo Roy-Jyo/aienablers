@@ -4,25 +4,26 @@ type EmployerFeed = {
   id?: string;
   company: string;
   industry?: string;
-  type: "greenhouse" | "lever" | "ashby" | "smartrecruiters";
+  type: "greenhouse" | "lever" | "ashby" | "smartrecruiters" | "workday";
   identifier: string;
   enabled?: boolean;
 };
 
 const PLACEHOLDER_VALUES = new Set([
-  "company name",
-  "company-board-token",
-  "company-site-name",
-  "company-board-name",
-  "company-identifier",
-  "employer name",
-  "employer-board-token",
-  "employer-site-name",
+  "company name", "company-board-token", "company-site-name", "company-board-name",
+  "company-identifier", "employer name", "employer-board-token", "employer-site-name",
 ]);
 
 function isPlaceholder(company: string, identifier: string) {
-  return PLACEHOLDER_VALUES.has(company.trim().toLowerCase()) ||
-    PLACEHOLDER_VALUES.has(identifier.trim().toLowerCase());
+  return PLACEHOLDER_VALUES.has(company.trim().toLowerCase()) || PLACEHOLDER_VALUES.has(identifier.trim().toLowerCase());
+}
+
+function parseWorkdayIdentifier(identifier: string) {
+  const parts = identifier.split("|").map((part) => part.trim());
+  if (parts.length < 3) return null;
+  const [host, tenant, site, locale = "en-US"] = parts;
+  if (!host || !tenant || !site || !/^[a-z0-9.-]+$/i.test(host.replace(/^https?:\/\//, ""))) return null;
+  return { host: host.replace(/^https?:\/\//, "").replace(/\/$/, ""), tenant, site, locale };
 }
 
 function authorised(request: NextRequest) {
@@ -42,19 +43,16 @@ function envFeeds(): EmployerFeed[] {
       const company = typeof feed.company === "string" ? feed.company : "";
       const industry = typeof feed.industry === "string" ? feed.industry : "";
       if (!company || typeof feed.type !== "string") continue;
-
       let employer: EmployerFeed | null = null;
       if (feed.type === "greenhouse" && typeof feed.token === "string") employer = { company, industry, type: "greenhouse", identifier: feed.token, enabled: true };
       if (feed.type === "lever" && typeof feed.site === "string") employer = { company, industry, type: "lever", identifier: feed.site, enabled: true };
       if (feed.type === "ashby" && typeof feed.board === "string") employer = { company, industry, type: "ashby", identifier: feed.board, enabled: true };
       if (feed.type === "smartrecruiters" && typeof feed.companyId === "string") employer = { company, industry, type: "smartrecruiters", identifier: feed.companyId, enabled: true };
-
+      if (feed.type === "workday" && typeof feed.identifier === "string") employer = { company, industry, type: "workday", identifier: feed.identifier, enabled: true };
       if (employer && !isPlaceholder(employer.company, employer.identifier)) parsed.push(employer);
     }
     return parsed;
-  } catch {
-    return [];
-  }
+  } catch { return []; }
 }
 
 function supabaseConfig() {
@@ -70,21 +68,29 @@ function supabaseHeaders(key: string, extra: Record<string, string> = {}) {
 async function readRegistry(): Promise<EmployerFeed[]> {
   const config = supabaseConfig();
   if (!config) return envFeeds();
-  const response = await fetch(`${config.url}/rest/v1/career_employers?select=id,company,industry,type,identifier,enabled&order=company.asc`, {
-    headers: supabaseHeaders(config.key), cache: "no-store",
-  });
+  const response = await fetch(`${config.url}/rest/v1/career_employers?select=id,company,industry,type,identifier,enabled&order=company.asc`, { headers: supabaseHeaders(config.key), cache: "no-store" });
   if (!response.ok) throw new Error(`Registry read failed: ${response.status}`);
   const feeds = (await response.json()) as EmployerFeed[];
   return feeds.filter((feed) => !isPlaceholder(feed.company, feed.identifier));
 }
 
 async function testFeed(feed: EmployerFeed) {
-  let url = "";
-  if (feed.type === "greenhouse") url = `https://boards-api.greenhouse.io/v1/boards/${encodeURIComponent(feed.identifier)}/jobs`;
-  if (feed.type === "lever") url = `https://api.lever.co/v0/postings/${encodeURIComponent(feed.identifier)}?mode=json`;
-  if (feed.type === "ashby") url = `https://api.ashbyhq.com/posting-api/job-board/${encodeURIComponent(feed.identifier)}`;
-  if (feed.type === "smartrecruiters") url = `https://api.smartrecruiters.com/v1/companies/${encodeURIComponent(feed.identifier)}/postings?limit=100`;
   try {
+    if (feed.type === "workday") {
+      const config = parseWorkdayIdentifier(feed.identifier);
+      if (!config) return { status: "error", httpStatus: 0, jobs: 0, message: "Use host|tenant|career-site|locale" };
+      const url = `https://${config.host}/wday/cxs/${encodeURIComponent(config.tenant)}/${encodeURIComponent(config.site)}/jobs`;
+      const response = await fetch(url, { method: "POST", headers: { Accept: "application/json", "Content-Type": "application/json" }, body: JSON.stringify({ appliedFacets: {}, limit: 20, offset: 0, searchText: "" }), cache: "no-store" });
+      if (!response.ok) return { status: "error", httpStatus: response.status, jobs: 0 };
+      const data = await response.json();
+      return { status: "ok", httpStatus: response.status, jobs: Number(data.total ?? data.jobPostings?.length ?? 0) };
+    }
+
+    let url = "";
+    if (feed.type === "greenhouse") url = `https://boards-api.greenhouse.io/v1/boards/${encodeURIComponent(feed.identifier)}/jobs`;
+    if (feed.type === "lever") url = `https://api.lever.co/v0/postings/${encodeURIComponent(feed.identifier)}?mode=json`;
+    if (feed.type === "ashby") url = `https://api.ashbyhq.com/posting-api/job-board/${encodeURIComponent(feed.identifier)}`;
+    if (feed.type === "smartrecruiters") url = `https://api.smartrecruiters.com/v1/companies/${encodeURIComponent(feed.identifier)}/postings?limit=100`;
     const response = await fetch(url, { headers: { Accept: "application/json" }, cache: "no-store" });
     if (!response.ok) return { status: "error", httpStatus: response.status, jobs: 0 };
     const data = await response.json();
@@ -113,11 +119,8 @@ export async function POST(request: NextRequest) {
   const body = (await request.json()) as EmployerFeed;
   if (!body.company || !body.type || !body.identifier) return NextResponse.json({ error: "Company, provider type and identifier are required." }, { status: 400 });
   if (isPlaceholder(body.company, body.identifier)) return NextResponse.json({ error: "Replace the example company and identifier with a real employer feed." }, { status: 400 });
-  const response = await fetch(`${config.url}/rest/v1/career_employers`, {
-    method: "POST",
-    headers: supabaseHeaders(config.key, { "Content-Type": "application/json", Prefer: "return=representation" }),
-    body: JSON.stringify({ company: body.company.trim(), industry: body.industry?.trim() || null, type: body.type, identifier: body.identifier.trim(), enabled: body.enabled ?? true }),
-  });
+  if (body.type === "workday" && !parseWorkdayIdentifier(body.identifier)) return NextResponse.json({ error: "Workday identifier must use host|tenant|career-site|locale." }, { status: 400 });
+  const response = await fetch(`${config.url}/rest/v1/career_employers`, { method: "POST", headers: supabaseHeaders(config.key, { "Content-Type": "application/json", Prefer: "return=representation" }), body: JSON.stringify({ company: body.company.trim(), industry: body.industry?.trim() || null, type: body.type, identifier: body.identifier.trim(), enabled: body.enabled ?? true }) });
   const data = await response.json().catch(() => null);
   if (!response.ok) return NextResponse.json({ error: data?.message ?? "Could not add employer" }, { status: response.status });
   return NextResponse.json({ employer: Array.isArray(data) ? data[0] : data }, { status: 201 });
@@ -130,11 +133,8 @@ export async function PATCH(request: NextRequest) {
   const body = (await request.json()) as EmployerFeed;
   if (!body.id) return NextResponse.json({ error: "Employer ID is required." }, { status: 400 });
   if (isPlaceholder(body.company, body.identifier)) return NextResponse.json({ error: "Replace the example company and identifier with a real employer feed." }, { status: 400 });
-  const response = await fetch(`${config.url}/rest/v1/career_employers?id=eq.${encodeURIComponent(body.id)}`, {
-    method: "PATCH",
-    headers: supabaseHeaders(config.key, { "Content-Type": "application/json", Prefer: "return=representation" }),
-    body: JSON.stringify({ company: body.company, industry: body.industry || null, type: body.type, identifier: body.identifier, enabled: body.enabled ?? true }),
-  });
+  if (body.type === "workday" && !parseWorkdayIdentifier(body.identifier)) return NextResponse.json({ error: "Workday identifier must use host|tenant|career-site|locale." }, { status: 400 });
+  const response = await fetch(`${config.url}/rest/v1/career_employers?id=eq.${encodeURIComponent(body.id)}`, { method: "PATCH", headers: supabaseHeaders(config.key, { "Content-Type": "application/json", Prefer: "return=representation" }), body: JSON.stringify({ company: body.company, industry: body.industry || null, type: body.type, identifier: body.identifier, enabled: body.enabled ?? true }) });
   const data = await response.json().catch(() => null);
   if (!response.ok) return NextResponse.json({ error: data?.message ?? "Could not update employer" }, { status: response.status });
   return NextResponse.json({ employer: Array.isArray(data) ? data[0] : data });
@@ -146,9 +146,7 @@ export async function DELETE(request: NextRequest) {
   if (!config) return NextResponse.json({ error: "Supabase is required to delete employers." }, { status: 503 });
   const id = request.nextUrl.searchParams.get("id");
   if (!id) return NextResponse.json({ error: "Employer ID is required." }, { status: 400 });
-  const response = await fetch(`${config.url}/rest/v1/career_employers?id=eq.${encodeURIComponent(id)}`, {
-    method: "DELETE", headers: supabaseHeaders(config.key),
-  });
+  const response = await fetch(`${config.url}/rest/v1/career_employers?id=eq.${encodeURIComponent(id)}`, { method: "DELETE", headers: supabaseHeaders(config.key) });
   if (!response.ok) return NextResponse.json({ error: "Could not delete employer" }, { status: response.status });
   return NextResponse.json({ deleted: true });
 }
