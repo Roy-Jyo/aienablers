@@ -23,6 +23,7 @@ type Job = {
   salaryMax: number | null;
   category: string | null;
   source: string;
+  directEmployer: boolean;
 };
 
 function stripHtml(value: string) {
@@ -62,6 +63,7 @@ export default function JobMarketSearchClient() {
   const [results, setResults] = useState<Job[]>([]);
   const [total, setTotal] = useState(0);
   const [interpretedQuery, setInterpretedQuery] = useState("");
+  const [directEmployerCount, setDirectEmployerCount] = useState(0);
   const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
   const [message, setMessage] = useState("");
 
@@ -70,6 +72,7 @@ export default function JobMarketSearchClient() {
     setStatus("loading");
     setMessage("");
     setInterpretedQuery("");
+    setDirectEmployerCount(0);
 
     try {
       const params = new URLSearchParams({ keywords: query, location });
@@ -84,11 +87,13 @@ export default function JobMarketSearchClient() {
       setResults(data.results ?? []);
       setTotal(data.providerCount ?? data.count ?? 0);
       setInterpretedQuery(data.interpretedQuery ?? query);
+      setDirectEmployerCount(data.directEmployerCount ?? 0);
       setStatus("done");
     } catch (error) {
       setResults([]);
       setTotal(0);
       setInterpretedQuery("");
+      setDirectEmployerCount(0);
       setMessage(error instanceof Error ? error.message : "Search failed.");
       setStatus("error");
     }
@@ -203,6 +208,11 @@ export default function JobMarketSearchClient() {
                       <MapPin size={15} className="text-indigo-600 dark:text-indigo-400" />
                       Location: {location || "Australia"}
                     </span>
+                    {directEmployerCount > 0 && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1.5 text-sm font-medium text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                        <CheckCircle2 size={15} /> {directEmployerCount} direct employer {directEmployerCount === 1 ? "listing" : "listings"}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -227,7 +237,14 @@ export default function JobMarketSearchClient() {
                   >
                     <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
                       <div>
-                        <p className="text-sm font-medium text-indigo-700 dark:text-indigo-300">{job.company}</p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-sm font-medium text-indigo-700 dark:text-indigo-300">{job.company}</p>
+                          {job.directEmployer && (
+                            <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                              Direct employer
+                            </span>
+                          )}
+                        </div>
                         <h3 className="mt-1 text-xl font-semibold text-slate-900 dark:text-white">{job.title}</h3>
                         <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm text-slate-500 dark:text-slate-400">
                           <span className="flex items-center gap-1"><MapPin size={15} /> {job.location}</span>
@@ -240,13 +257,19 @@ export default function JobMarketSearchClient() {
                         href={job.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-indigo-200 px-4 py-2 font-medium text-indigo-700 hover:bg-indigo-50 dark:border-indigo-700 dark:text-indigo-300 dark:hover:bg-indigo-950"
+                        className={
+                          job.directEmployer
+                            ? "inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 font-semibold text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-400"
+                            : "inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-indigo-200 px-4 py-2 font-medium text-indigo-700 hover:bg-indigo-50 dark:border-indigo-700 dark:text-indigo-300 dark:hover:bg-indigo-950"
+                        }
                       >
-                        View Job <ExternalLink size={16} />
+                        {job.directEmployer ? "Apply on employer site" : "View & Apply"} <ExternalLink size={16} />
                       </a>
                     </div>
                     <p className="mt-4 line-clamp-3 leading-7 text-slate-600 dark:text-slate-300">{stripHtml(job.description)}</p>
-                    <p className="mt-4 text-xs text-slate-400 dark:text-slate-500">Market source: {job.source}</p>
+                    <p className="mt-4 text-xs text-slate-400 dark:text-slate-500">
+                      {job.directEmployer ? "Direct source" : "Market source"}: {job.source}
+                    </p>
                   </article>
                 );
               })}
