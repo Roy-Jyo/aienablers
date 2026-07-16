@@ -55,11 +55,19 @@ function extractSearchIntent(input: string) {
 
   const careerStage = /\bintern(ship)?\b/.test(normalised)
     ? "internship"
-    : /\bgraduate|grad\b/.test(normalised)
-      ? "graduate"
-      : /\bentry[ -]?level|junior\b/.test(normalised)
-        ? "entry level"
-        : null;
+    : /\btrainee(ship)?|apprentice(ship)?|cadet(ship)?\b/.test(normalised)
+      ? "traineeship"
+      : /\bgraduate|grad\b/.test(normalised)
+        ? "graduate"
+        : /\bentry[ -]?level|junior\b/.test(normalised)
+          ? "entry level"
+          : null;
+
+  const requestedSeniority = /\b(?:chief|executive|director|head of|general manager|senior manager|manager|lead|principal)\b/.test(normalised)
+    ? "senior"
+    : careerStage
+      ? "early-career"
+      : null;
 
   const workArrangement = /\bremote\b/.test(normalised)
     ? "remote"
@@ -93,7 +101,7 @@ function extractSearchIntent(input: string) {
     /\b(?:show|find|give)\s+me\b/g,
     /\b(?:full[ -]?time|part[ -]?time|permanent|contract(?:or)?|freelance|casual)\b/g,
     /\b(?:remote|hybrid|on[ -]?site|onsite|office based)\b/g,
-    /\b(?:internship|intern|graduate|grad|entry[ -]?level|junior)\b/g,
+    /\b(?:internship|intern|traineeship|trainee|apprenticeship|apprentice|cadetship|cadet|graduate|grad|entry[ -]?level|junior)\b/g,
     /\b\d{1,2}\+?\s*(?:year|years|yr|yrs)(?:\s+of)?\s+experience\b/g,
     /(?:\$|aud\s*)?\d{2,3}(?:k|,000)(?:\s*(?:or more|plus|minimum|min))?/g,
   ];
@@ -111,7 +119,7 @@ function extractSearchIntent(input: string) {
   const coreTerms = Array.from(new Set([...keywords.split(/\s+/).filter((term) => term.length > 2), ...taxonomyTerms]));
   const providerTerms = [keywords, careerStage].filter(Boolean).join(" ");
 
-  return { keywords, providerTerms, coreTerms, careerStage, workArrangement, employmentType, experienceYears, salaryMin };
+  return { keywords, providerTerms, coreTerms, careerStage, requestedSeniority, workArrangement, employmentType, experienceYears, salaryMin };
 }
 
 function isPlaceholder(value: string) {
@@ -145,6 +153,12 @@ function relevanceScore(job: JobResult, intent: ReturnType<typeof extractSearchI
   const category = (job.category ?? "").toLowerCase();
   const text = `${title} ${description} ${category}`;
 
+  const seniorTitle = /\b(?:chief|ceo|cfo|cio|cto|executive|director|head(?: of)?|general manager|senior manager|manager|team lead|tech lead|engineering lead|practice lead|principal|vice president|vp)\b/i;
+  const earlyCareerTitle = /\b(?:intern(?:ship)?|trainee(?:ship)?|apprentice(?:ship)?|cadet(?:ship)?|graduate|grad program|vacation program|summer program|early career|entry[ -]?level|junior|associate)\b/i;
+
+  // Hard seniority gate: early-career searches must never surface leadership roles.
+  if (intent.requestedSeniority === "early-career" && seniorTitle.test(title)) return 0;
+
   let titleMatches = 0;
   let bodyMatches = 0;
   for (const term of intent.coreTerms) {
@@ -153,21 +167,28 @@ function relevanceScore(job: JobResult, intent: ReturnType<typeof extractSearchI
     else if (text.includes(value)) bodyMatches += 1;
   }
 
-  const stageTerms: Record<string, string[]> = {
-    internship: ["intern", "internship", "vacation program", "summer program"],
-    graduate: ["graduate", "grad program", "early career"],
-    "entry level": ["entry level", "junior", "associate", "trainee"],
+  const compatibleStageTerms: Record<string, string[]> = {
+    internship: ["intern", "internship", "trainee", "traineeship", "apprentice", "apprenticeship", "cadet", "cadetship", "vacation program", "summer program", "graduate", "grad program", "early career", "entry level", "junior"],
+    traineeship: ["trainee", "traineeship", "apprentice", "apprenticeship", "cadet", "cadetship", "intern", "internship", "graduate", "early career", "entry level", "junior"],
+    graduate: ["graduate", "grad program", "early career", "entry level", "junior", "associate", "trainee", "cadet"],
+    "entry level": ["entry level", "junior", "associate", "trainee", "apprentice", "cadet", "graduate", "early career"],
   };
+
   const stageMatched = intent.careerStage
-    ? stageTerms[intent.careerStage].some((term) => text.includes(term))
+    ? compatibleStageTerms[intent.careerStage].some((term) => text.includes(term))
     : false;
 
   const hasRoleRelevance = titleMatches > 0 || bodyMatches >= 2;
   if (!hasRoleRelevance) return 0;
-  if (intent.careerStage && !stageMatched && titleMatches === 0) return 0;
+
+  // For internship/traineeship searches, a compatible early-career signal is mandatory.
+  if ((intent.careerStage === "internship" || intent.careerStage === "traineeship") && !stageMatched) return 0;
+
+  // Graduate and entry-level searches can accept a clearly relevant role, but not an obviously senior one.
+  if ((intent.careerStage === "graduate" || intent.careerStage === "entry level") && seniorTitle.test(title)) return 0;
 
   let score = titleMatches * 30 + bodyMatches * 8;
-  if (stageMatched) score += 25;
+  if (stageMatched) score += earlyCareerTitle.test(title) ? 40 : 25;
   if (intent.workArrangement && text.includes(intent.workArrangement)) score += 6;
   if (intent.employmentType && text.includes(intent.employmentType)) score += 6;
   if (intent.experienceYears && text.includes(`${intent.experienceYears} year`)) score += 4;
