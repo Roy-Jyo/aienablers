@@ -1,9 +1,38 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const ADZUNA_BASE_URL = "https://api.adzuna.com/v1/api/jobs/au/search/1";
+const OPPORTUNITY_TERMS = [
+  "intern",
+  "internship",
+  "graduate",
+  "student",
+  "trainee",
+  "cadet",
+  "apprentice",
+  "placement",
+  "vacation program",
+];
 
 function clean(value: string | null, maxLength: number) {
   return (value ?? "").trim().slice(0, maxLength);
+}
+
+function relevanceScore(job: Record<string, any>, keywords: string) {
+  const title = String(job.title ?? "").toLowerCase();
+  const description = String(job.description ?? "").toLowerCase();
+  const text = `${title} ${description}`;
+  const keywordTerms = keywords.toLowerCase().split(/\s+/).filter(Boolean);
+
+  let score = 0;
+  for (const term of OPPORTUNITY_TERMS) {
+    if (title.includes(term)) score += 10;
+    else if (description.includes(term)) score += 3;
+  }
+  for (const term of keywordTerms) {
+    if (title.includes(term)) score += 4;
+    else if (text.includes(term)) score += 1;
+  }
+  return score;
 }
 
 export async function GET(request: NextRequest) {
@@ -33,8 +62,8 @@ export async function GET(request: NextRequest) {
   const query = new URLSearchParams({
     app_id: appId,
     app_key: appKey,
-    results_per_page: "20",
-    what: `${keywords} internship intern student`,
+    results_per_page: "50",
+    what: keywords,
     where: location,
     sort_by: "date",
   });
@@ -58,23 +87,32 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await response.json();
-    const results = Array.isArray(data.results)
-      ? data.results.map((job: Record<string, any>) => ({
-          id: String(job.id ?? job.redirect_url),
-          title: job.title ?? "Internship opportunity",
-          company: job.company?.display_name ?? "Company not listed",
-          location: job.location?.display_name ?? location,
-          description: job.description ?? "",
-          created: job.created ?? null,
-          url: job.redirect_url,
-          salaryMin: job.salary_min ?? null,
-          salaryMax: job.salary_max ?? null,
-          category: job.category?.label ?? null,
-          source: "Adzuna",
-        }))
-      : [];
+    const rawResults = Array.isArray(data.results) ? data.results : [];
+    const rankedResults = rawResults
+      .map((job: Record<string, any>) => ({ job, score: relevanceScore(job, keywords) }))
+      .sort((a: { score: number }, b: { score: number }) => b.score - a.score)
+      .slice(0, 20);
 
-    return NextResponse.json({ count: data.count ?? results.length, results });
+    const results = rankedResults.map(({ job, score }: { job: Record<string, any>; score: number }) => ({
+      id: String(job.id ?? job.redirect_url),
+      title: job.title ?? "Opportunity",
+      company: job.company?.display_name ?? "Company not listed",
+      location: job.location?.display_name ?? location,
+      description: job.description ?? "",
+      created: job.created ?? null,
+      url: job.redirect_url,
+      salaryMin: job.salary_min ?? null,
+      salaryMax: job.salary_max ?? null,
+      category: job.category?.label ?? null,
+      source: "Adzuna",
+      opportunityMatch: score > 0,
+    }));
+
+    return NextResponse.json({
+      count: rawResults.length,
+      providerCount: data.count ?? rawResults.length,
+      results,
+    });
   } catch (error) {
     console.error("Internship search error", error);
     return NextResponse.json(
