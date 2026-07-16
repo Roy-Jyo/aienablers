@@ -4,11 +4,10 @@ const ADZUNA_BASE_URL = "https://api.adzuna.com/v1/api/jobs/au/search/1";
 const NAB_CAREERS_URL = "https://careers.nab.com.au/jobs/search";
 
 const STOP_WORDS = new Set([
-  "i", "im", "i'm", "am", "we", "are", "is", "the", "a", "an", "for", "to",
-  "of", "and", "or", "that", "this", "some", "any", "kind", "type", "please",
-  "show", "find", "me", "looking", "seeking", "want", "would", "like", "after",
-  "job", "jobs", "role", "roles", "position", "positions", "opportunity", "opportunities",
-  "student", "final-year", "final", "year", "in", "at", "with", "where", "can",
+  "i", "im", "i'm", "am", "we", "are", "is", "the", "a", "an", "for", "to", "of", "and", "or",
+  "that", "this", "some", "any", "kind", "type", "please", "show", "find", "me", "looking", "seeking",
+  "want", "would", "like", "after", "job", "jobs", "role", "roles", "position", "positions", "opportunity",
+  "opportunities", "student", "final-year", "final", "year", "in", "at", "with", "where", "can",
 ]);
 
 const TAXONOMY: Array<{ match: RegExp; terms: string[] }> = [
@@ -44,11 +43,12 @@ type DirectFeed =
   | { type: "lever"; site: string; company: string }
   | { type: "ashby"; board: string; company: string }
   | { type: "smartrecruiters"; companyId: string; company: string }
-  | ({ type: "workday"; company: string } & WorkdayConfig);
+  | ({ type: "workday"; company: string } & WorkdayConfig)
+  | { type: "erecruit"; company: string; baseUrl: string };
 
 type RegistryRow = {
   company: string;
-  type: "greenhouse" | "lever" | "ashby" | "smartrecruiters" | "workday";
+  type: "greenhouse" | "lever" | "ashby" | "smartrecruiters" | "workday" | "erecruit";
   identifier: string;
   enabled?: boolean;
 };
@@ -61,10 +61,10 @@ function extractSearchIntent(input: string) {
   const normalised = input.toLowerCase().replace(/[’]/g, "'").replace(/[^a-z0-9+#.$\-/\s']/g, " ").replace(/\s+/g, " ").trim();
   const careerStage = /\bintern(ship)?\b/.test(normalised) ? "internship"
     : /\bapprentice(ship)?\b/.test(normalised) ? "apprenticeship"
-    : /\btrainee(ship)?\b/.test(normalised) ? "traineeship"
-    : /\bcadet(ship)?\b/.test(normalised) ? "cadetship"
-    : /\bgraduate|grad\b/.test(normalised) ? "graduate"
-    : /\bentry[ -]?level|junior\b/.test(normalised) ? "entry level" : null;
+      : /\btrainee(ship)?\b/.test(normalised) ? "traineeship"
+        : /\bcadet(ship)?\b/.test(normalised) ? "cadetship"
+          : /\bgraduate|grad\b/.test(normalised) ? "graduate"
+            : /\bentry[ -]?level|junior\b/.test(normalised) ? "entry level" : null;
   const requestedSeniority = /\b(?:chief|executive|director|head of|general manager|senior manager|manager|lead|principal)\b/.test(normalised) ? "senior" : careerStage ? "early-career" : null;
   const workArrangement = /\bremote\b/.test(normalised) ? "remote" : /\bhybrid\b/.test(normalised) ? "hybrid" : /\bon[ -]?site|office based\b/.test(normalised) ? "onsite" : null;
   const employmentType = /\bpart[ -]?time\b/.test(normalised) ? "part time" : /\bfull[ -]?time\b/.test(normalised) ? "full time" : /\bcontract(or)?|freelance\b/.test(normalised) ? "contract" : /\bpermanent\b/.test(normalised) ? "permanent" : /\bcasual\b/.test(normalised) ? "casual" : null;
@@ -75,8 +75,10 @@ function extractSearchIntent(input: string) {
 
   let stripped = normalised;
   for (const phrase of [
-    /\b(?:i am|i'm|im|we are|we're)\b/g, /\b(?:looking|searching|seeking|hoping)\s+for\b/g,
-    /\b(?:show|find|give)\s+me\b/g, /\b(?:full[ -]?time|part[ -]?time|permanent|contract(?:or)?|freelance|casual)\b/g,
+    /\b(?:i am|i'm|im|we are|we're)\b/g,
+    /\b(?:looking|searching|seeking|hoping)\s+for\b/g,
+    /\b(?:show|find|give)\s+me\b/g,
+    /\b(?:full[ -]?time|part[ -]?time|permanent|contract(?:or)?|freelance|casual)\b/g,
     /\b(?:remote|hybrid|on[ -]?site|onsite|office based)\b/g,
     /\b(?:internship|intern|traineeship|trainee|apprenticeship|apprentice|cadetship|cadet|graduate|grad|entry[ -]?level|junior)\b/g,
     /\b\d{1,2}\+?\s*(?:year|years|yr|yrs)(?:\s+of)?\s+experience\b/g,
@@ -103,6 +105,17 @@ function parseWorkdayIdentifier(identifier: string): WorkdayConfig | null {
   return { host: host.replace(/^https?:\/\//, "").replace(/\/$/, ""), tenant, site, locale };
 }
 
+function parseERecruitIdentifier(identifier: string) {
+  try {
+    const value = /^https?:\/\//i.test(identifier.trim()) ? identifier.trim() : `https://${identifier.trim()}`;
+    const url = new URL(value);
+    if (url.protocol !== "https:") return null;
+    return `${url.origin}${url.pathname.replace(/\/$/, "")}`;
+  } catch {
+    return null;
+  }
+}
+
 function rowToFeed(row: RegistryRow): DirectFeed | null {
   if (!row.company || !row.identifier || row.enabled === false || isPlaceholder(row.company) || isPlaceholder(row.identifier)) return null;
   if (row.type === "greenhouse") return { type: "greenhouse", token: row.identifier, company: row.company };
@@ -112,6 +125,10 @@ function rowToFeed(row: RegistryRow): DirectFeed | null {
   if (row.type === "workday") {
     const config = parseWorkdayIdentifier(row.identifier);
     return config ? { type: "workday", company: row.company, ...config } : null;
+  }
+  if (row.type === "erecruit") {
+    const baseUrl = parseERecruitIdentifier(row.identifier);
+    return baseUrl ? { type: "erecruit", company: row.company, baseUrl } : null;
   }
   return null;
 }
@@ -130,7 +147,7 @@ function parseEnvironmentFeeds(): DirectFeed[] {
       if (item.type === "lever" && typeof item.site === "string") identifier = item.site;
       if (item.type === "ashby" && typeof item.board === "string") identifier = item.board;
       if (item.type === "smartrecruiters" && typeof item.companyId === "string") identifier = item.companyId;
-      if (item.type === "workday" && typeof item.identifier === "string") identifier = item.identifier;
+      if ((item.type === "workday" || item.type === "erecruit") && typeof item.identifier === "string") identifier = item.identifier;
       const feed = rowToFeed({ company: item.company, type: item.type as RegistryRow["type"], identifier, enabled: item.enabled !== false });
       if (feed) feeds.push(feed);
     }
@@ -141,13 +158,19 @@ function parseEnvironmentFeeds(): DirectFeed[] {
   }
 }
 
+function supabaseHeaders(key: string) {
+  const headers: Record<string, string> = { apikey: key };
+  if (!key.startsWith("sb_secret_")) headers.Authorization = `Bearer ${key}`;
+  return headers;
+}
+
 async function loadEmployerFeeds(): Promise<{ feeds: DirectFeed[]; source: "supabase" | "vercel-environment" | "none" }> {
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const url = process.env.SUPABASE_URL?.trim().replace(/\/$/, "");
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
   if (url && key) {
     try {
       const response = await fetch(`${url}/rest/v1/career_employers?select=company,type,identifier,enabled&enabled=eq.true&order=company.asc`, {
-        headers: { apikey: key, Authorization: `Bearer ${key}` },
+        headers: supabaseHeaders(key),
         next: { revalidate: 300 },
       });
       if (!response.ok) throw new Error(`Supabase registry returned ${response.status}`);
@@ -169,7 +192,6 @@ function relevanceScore(job: JobResult, intent: ReturnType<typeof extractSearchI
   const seniorTitle = /\b(?:chief|ceo|cfo|cio|cto|executive|director|head(?: of)?|general manager|senior manager|manager|team lead|tech lead|engineering lead|practice lead|principal|vice president|vp)\b/i;
   const earlyCareerTitle = /\b(?:intern(?:ship)?|trainee(?:ship)?|apprentice(?:ship)?|cadet(?:ship)?|graduate|grad program|vacation program|summer program|early career|entry[ -]?level|junior|associate|first year|second year|third year|fourth year)\b/i;
   if (intent.requestedSeniority === "early-career" && seniorTitle.test(title)) return 0;
-
   let titleMatches = 0;
   let bodyMatches = 0;
   for (const term of intent.coreTerms) {
@@ -189,7 +211,6 @@ function relevanceScore(job: JobResult, intent: ReturnType<typeof extractSearchI
   if (!(titleMatches > 0 || bodyMatches >= 2)) return 0;
   if (["internship", "apprenticeship", "traineeship", "cadetship"].includes(intent.careerStage ?? "") && !stageMatched) return 0;
   if ((intent.careerStage === "graduate" || intent.careerStage === "entry level") && seniorTitle.test(title)) return 0;
-
   let score = titleMatches * 30 + bodyMatches * 8;
   if (stageMatched) score += earlyCareerTitle.test(title) ? 40 : 25;
   if (intent.workArrangement && text.includes(intent.workArrangement)) score += 6;
@@ -203,6 +224,10 @@ function matchesLocation(job: JobResult, location: string) {
   if (!location || location.toLowerCase() === "australia") return true;
   const actual = `${job.location} ${job.description}`.toLowerCase();
   return actual.includes(location.toLowerCase()) || actual.includes("remote");
+}
+
+function decodeHtml(value: string) {
+  return value.replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
 }
 
 async function fetchGreenhouse(feed: Extract<DirectFeed, { type: "greenhouse" }>): Promise<JobResult[]> {
@@ -264,8 +289,36 @@ async function fetchWorkday(feed: Extract<DirectFeed, { type: "workday" }>): Pro
   }
 }
 
-function decodeHtml(value: string) {
-  return value.replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
+async function fetchERecruit(feed: Extract<DirectFeed, { type: "erecruit" }>): Promise<JobResult[]> {
+  const jobs: JobResult[] = [];
+  const seen = new Set<string>();
+  try {
+    for (let page = 1; page <= 20; page += 1) {
+      const browseUrl = `${feed.baseUrl}/candidateapp/jobs/browse${page > 1 ? `?page=${page}` : ""}`;
+      const response = await fetch(browseUrl, { headers: { Accept: "text/html,application/xhtml+xml", "User-Agent": "AIEnablers-Career-Intelligence/1.0" }, next: { revalidate: 900 }, redirect: "follow" });
+      if (!response.ok) break;
+      const html = await response.text();
+      let foundOnPage = 0;
+      const anchorPattern = /<a[^>]+href=["']([^"']*\/candidateapp\/jobs\/(?:view|detail|details|[^"']*(?:job|vacancy)[^"']*))[^"']*["'][^>]*>([\s\S]*?)<\/a>/gi;
+      let match: RegExpExecArray | null;
+      while ((match = anchorPattern.exec(html)) !== null) {
+        const href = match[1];
+        const title = decodeHtml(match[2]);
+        if (!title || /^read more|view|apply$/i.test(title) || seen.has(href)) continue;
+        seen.add(href);
+        foundOnPage += 1;
+        const context = decodeHtml(html.slice(Math.max(0, match.index - 600), Math.min(html.length, match.index + match[0].length + 1600)));
+        const locationMatch = context.match(/(?:NSW|VIC|QLD|WA|SA|TAS|NT|ACT|Australia|Sydney|Melbourne|Brisbane|Perth|Adelaide)[^|•]{0,100}/i);
+        const absoluteUrl = href.startsWith("http") ? href : `${feed.baseUrl}${href.startsWith("/") ? "" : "/"}${href}`;
+        jobs.push({ id: `erecruit-${feed.company}-${href}`, title, company: feed.company, location: locationMatch?.[0]?.trim() || "Australia", description: context.slice(0, 1200), created: null, url: absoluteUrl, salaryMin: null, salaryMax: null, category: null, source: `${feed.company} careers`, directEmployer: true });
+      }
+      if (!foundOnPage) break;
+    }
+    return jobs;
+  } catch (error) {
+    console.error("eRecruit feed error", feed.company, error);
+    return [];
+  }
 }
 
 async function fetchNabCareers(): Promise<JobResult[]> {
@@ -303,6 +356,7 @@ function fetchDirectFeed(feed: DirectFeed): Promise<JobResult[]> {
     case "ashby": return fetchAshby(feed);
     case "smartrecruiters": return fetchSmartRecruiters(feed);
     case "workday": return fetchWorkday(feed);
+    case "erecruit": return fetchERecruit(feed);
   }
 }
 
