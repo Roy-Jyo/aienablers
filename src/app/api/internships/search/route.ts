@@ -26,7 +26,9 @@ type JobResult = {
 
 type DirectFeed =
   | { type: "greenhouse"; token: string; company: string }
-  | { type: "lever"; site: string; company: string };
+  | { type: "lever"; site: string; company: string }
+  | { type: "ashby"; board: string; company: string }
+  | { type: "smartrecruiters"; companyId: string; company: string };
 
 function clean(value: string | null, maxLength: number) {
   return (value ?? "").trim().slice(0, maxLength);
@@ -114,11 +116,14 @@ function parseDirectFeeds(): DirectFeed[] {
   try {
     const feeds = JSON.parse(raw);
     if (!Array.isArray(feeds)) return [];
+
     return feeds.filter((feed): feed is DirectFeed => {
       if (!feed || typeof feed !== "object" || typeof feed.company !== "string") return false;
       return (
         (feed.type === "greenhouse" && typeof feed.token === "string") ||
-        (feed.type === "lever" && typeof feed.site === "string")
+        (feed.type === "lever" && typeof feed.site === "string") ||
+        (feed.type === "ashby" && typeof feed.board === "string") ||
+        (feed.type === "smartrecruiters" && typeof feed.companyId === "string")
       );
     });
   } catch (error) {
@@ -158,10 +163,7 @@ async function fetchGreenhouse(feed: Extract<DirectFeed, { type: "greenhouse" }>
       `https://boards-api.greenhouse.io/v1/boards/${encodeURIComponent(feed.token)}/jobs?content=true`,
       { headers: { Accept: "application/json" }, next: { revalidate: 900 } },
     );
-    if (!response.ok) {
-      console.error("Greenhouse feed failed", feed.company, response.status);
-      return [];
-    }
+    if (!response.ok) return [];
     const data = await response.json();
     return (Array.isArray(data.jobs) ? data.jobs : []).map((job: Record<string, any>) => ({
       id: `greenhouse-${feed.token}-${job.id}`,
@@ -189,10 +191,7 @@ async function fetchLever(feed: Extract<DirectFeed, { type: "lever" }>): Promise
       `https://api.lever.co/v0/postings/${encodeURIComponent(feed.site)}?mode=json`,
       { headers: { Accept: "application/json" }, next: { revalidate: 900 } },
     );
-    if (!response.ok) {
-      console.error("Lever feed failed", feed.company, response.status);
-      return [];
-    }
+    if (!response.ok) return [];
     const data = await response.json();
     return (Array.isArray(data) ? data : []).map((job: Record<string, any>) => ({
       id: `lever-${feed.site}-${job.id}`,
@@ -214,10 +213,86 @@ async function fetchLever(feed: Extract<DirectFeed, { type: "lever" }>): Promise
   }
 }
 
+async function fetchAshby(feed: Extract<DirectFeed, { type: "ashby" }>): Promise<JobResult[]> {
+  try {
+    const response = await fetch(
+      `https://api.ashbyhq.com/posting-api/job-board/${encodeURIComponent(feed.board)}`,
+      { headers: { Accept: "application/json" }, next: { revalidate: 900 } },
+    );
+    if (!response.ok) return [];
+    const data = await response.json();
+    return (Array.isArray(data.jobs) ? data.jobs : []).map((job: Record<string, any>) => ({
+      id: `ashby-${feed.board}-${job.id ?? job.jobUrl}`,
+      title: job.title ?? "Job opportunity",
+      company: feed.company,
+      location: job.location ?? "Location not listed",
+      description: job.descriptionPlain ?? job.descriptionHtml ?? job.description ?? "",
+      created: job.publishedAt ?? null,
+      url: job.applyUrl ?? job.jobUrl,
+      salaryMin: null,
+      salaryMax: null,
+      category: job.department ?? job.team ?? null,
+      source: `${feed.company} careers`,
+      directEmployer: true,
+    }));
+  } catch (error) {
+    console.error("Ashby feed error", feed.company, error);
+    return [];
+  }
+}
+
+async function fetchSmartRecruiters(
+  feed: Extract<DirectFeed, { type: "smartrecruiters" }>,
+): Promise<JobResult[]> {
+  try {
+    const response = await fetch(
+      `https://api.smartrecruiters.com/v1/companies/${encodeURIComponent(feed.companyId)}/postings?limit=100`,
+      { headers: { Accept: "application/json" }, next: { revalidate: 900 } },
+    );
+    if (!response.ok) return [];
+    const data = await response.json();
+    return (Array.isArray(data.content) ? data.content : []).map((job: Record<string, any>) => ({
+      id: `smartrecruiters-${feed.companyId}-${job.id}`,
+      title: job.name ?? "Job opportunity",
+      company: feed.company,
+      location: [job.location?.city, job.location?.region, job.location?.country]
+        .filter(Boolean)
+        .join(", ") || "Location not listed",
+      description: job.jobAd?.sections?.jobDescription?.text ?? job.jobAd?.sections?.companyDescription?.text ?? "",
+      created: job.releasedDate ?? null,
+      url: job.ref ?? `https://jobs.smartrecruiters.com/${feed.companyId}/${job.id}`,
+      salaryMin: null,
+      salaryMax: null,
+      category: job.department?.label ?? job.function?.label ?? null,
+      source: `${feed.company} careers`,
+      directEmployer: true,
+    }));
+  } catch (error) {
+    console.error("SmartRecruiters feed error", feed.company, error);
+    return [];
+  }
+}
+
+function fetchDirectFeed(feed: DirectFeed): Promise<JobResult[]> {
+  switch (feed.type) {
+    case "greenhouse":
+      return fetchGreenhouse(feed);
+    case "lever":
+      return fetchLever(feed);
+    case "ashby":
+      return fetchAshby(feed);
+    case "smartrecruiters":
+      return fetchSmartRecruiters(feed);
+  }
+}
+
 function deduplicate(jobs: JobResult[]) {
   const seen = new Set<string>();
   return jobs.filter((job) => {
-    const key = `${job.company}|${job.title}|${job.location}`.toLowerCase().replace(/\s+/g, " ");
+    const key = `${job.company}|${job.title}|${job.location}`
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
@@ -239,10 +314,7 @@ export async function GET(request: NextRequest) {
 
   const intent = extractSearchIntent(naturalLanguageQuery);
   const directFeeds = parseDirectFeeds();
-
-  const directPromises = directFeeds.map((feed) =>
-    feed.type === "greenhouse" ? fetchGreenhouse(feed) : fetchLever(feed),
-  );
+  const directPromises = directFeeds.map(fetchDirectFeed);
 
   let adzunaPromise: Promise<JobResult[]> = Promise.resolve([]);
   let providerCount = 0;
@@ -265,31 +337,30 @@ export async function GET(request: NextRequest) {
     adzunaPromise = fetch(`${ADZUNA_BASE_URL}?${query.toString()}`, {
       headers: { Accept: "application/json" },
       next: { revalidate: 900 },
-    }).then(async (response) => {
-      if (!response.ok) {
-        console.error("Adzuna search failed", response.status, await response.text());
+    })
+      .then(async (response) => {
+        if (!response.ok) return [];
+        const data = await response.json();
+        providerCount = data.count ?? 0;
+        return (Array.isArray(data.results) ? data.results : []).map((job: Record<string, any>) => ({
+          id: `adzuna-${job.id ?? job.redirect_url}`,
+          title: job.title ?? "Job opportunity",
+          company: job.company?.display_name ?? "Company not listed",
+          location: job.location?.display_name ?? location,
+          description: job.description ?? "",
+          created: job.created ?? null,
+          url: job.redirect_url,
+          salaryMin: job.salary_min ?? null,
+          salaryMax: job.salary_max ?? null,
+          category: job.category?.label ?? null,
+          source: "Adzuna",
+          directEmployer: false,
+        }));
+      })
+      .catch((error) => {
+        console.error("Adzuna search error", error);
         return [];
-      }
-      const data = await response.json();
-      providerCount = data.count ?? 0;
-      return (Array.isArray(data.results) ? data.results : []).map((job: Record<string, any>) => ({
-        id: `adzuna-${job.id ?? job.redirect_url}`,
-        title: job.title ?? "Job opportunity",
-        company: job.company?.display_name ?? "Company not listed",
-        location: job.location?.display_name ?? location,
-        description: job.description ?? "",
-        created: job.created ?? null,
-        url: job.redirect_url,
-        salaryMin: job.salary_min ?? null,
-        salaryMax: job.salary_max ?? null,
-        category: job.category?.label ?? null,
-        source: "Adzuna",
-        directEmployer: false,
-      }));
-    }).catch((error) => {
-      console.error("Adzuna search error", error);
-      return [];
-    });
+      });
   }
 
   try {
@@ -300,7 +371,7 @@ export async function GET(request: NextRequest) {
       .map((job) => ({ job, score: relevanceScore(job, intent) }))
       .filter(({ score }) => score > 0)
       .sort((a, b) => b.score - a.score)
-      .slice(0, 20)
+      .slice(0, 25)
       .map(({ job }) => job);
 
     return NextResponse.json({
@@ -309,10 +380,11 @@ export async function GET(request: NextRequest) {
       interpretedQuery: intent.keywords,
       interpretedSearch: intent,
       directEmployerCount: ranked.filter((job) => job.directEmployer).length,
+      activeDirectFeeds: directFeeds.length,
       results: ranked,
     });
   } catch (error) {
-    console.error("Job market search error", error);
+    console.error("Career Intelligence search error", error);
     return NextResponse.json(
       { error: "We could not complete the search. Please try again." },
       { status: 500 },
