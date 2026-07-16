@@ -2,8 +2,31 @@ import { NextRequest, NextResponse } from "next/server";
 
 const ADZUNA_BASE_URL = "https://api.adzuna.com/v1/api/jobs/au/search/1";
 
+const STOP_WORDS = new Set([
+  "i", "im", "i'm", "am", "we", "are", "is", "the", "a", "an", "for", "to",
+  "of", "and", "or", "that", "this", "some", "any", "kind", "type", "please",
+  "show", "find", "me", "looking", "seeking", "want", "would", "like", "after",
+  "job", "jobs", "role", "roles", "position", "positions", "opportunity", "opportunities",
+]);
+
 function clean(value: string | null, maxLength: number) {
   return (value ?? "").trim().slice(0, maxLength);
+}
+
+function extractSearchTerms(input: string) {
+  const normalised = input
+    .toLowerCase()
+    .replace(/[’]/g, "'")
+    .replace(/[^a-z0-9+#.\-/\s']/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const terms = normalised
+    .split(" ")
+    .filter(Boolean)
+    .filter((term) => !STOP_WORDS.has(term));
+
+  return terms.join(" ").trim() || normalised;
 }
 
 function relevanceScore(job: Record<string, any>, keywords: string) {
@@ -34,21 +57,23 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const keywords = clean(request.nextUrl.searchParams.get("keywords"), 250);
+  const naturalLanguageQuery = clean(request.nextUrl.searchParams.get("keywords"), 250);
   const location = clean(request.nextUrl.searchParams.get("location"), 100) || "Australia";
 
-  if (!keywords) {
+  if (!naturalLanguageQuery) {
     return NextResponse.json(
       { error: "Please describe the kind of role you are after." },
       { status: 400 },
     );
   }
 
+  const searchTerms = extractSearchTerms(naturalLanguageQuery);
+
   const query = new URLSearchParams({
     app_id: appId,
     app_key: appKey,
     results_per_page: "50",
-    what: keywords,
+    what: searchTerms,
     where: location,
     sort_by: "date",
   });
@@ -74,7 +99,7 @@ export async function GET(request: NextRequest) {
     const data = await response.json();
     const rawResults = Array.isArray(data.results) ? data.results : [];
     const rankedResults = rawResults
-      .map((job: Record<string, any>) => ({ job, score: relevanceScore(job, keywords) }))
+      .map((job: Record<string, any>) => ({ job, score: relevanceScore(job, searchTerms) }))
       .sort((a: { score: number }, b: { score: number }) => b.score - a.score)
       .slice(0, 20);
 
@@ -95,6 +120,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       count: rawResults.length,
       providerCount: data.count ?? rawResults.length,
+      interpretedQuery: searchTerms,
       results,
     });
   } catch (error) {
