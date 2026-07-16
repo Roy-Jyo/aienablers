@@ -4,7 +4,7 @@ type EmployerFeed = {
   id?: string;
   company: string;
   industry?: string;
-  type: "greenhouse" | "lever" | "ashby" | "smartrecruiters" | "workday";
+  type: "greenhouse" | "lever" | "ashby" | "smartrecruiters" | "workday" | "erecruit";
   identifier: string;
   enabled?: boolean;
 };
@@ -27,8 +27,8 @@ function parseWorkdayIdentifier(identifier: string) {
 }
 
 function authorised(request: NextRequest) {
-  const configured = process.env.CAREER_ADMIN_KEY;
-  const supplied = request.headers.get("x-admin-key");
+  const configured = process.env.CAREER_ADMIN_KEY?.trim();
+  const supplied = request.headers.get("x-admin-key")?.trim();
   return Boolean(configured && supplied && supplied === configured);
 }
 
@@ -49,6 +49,7 @@ function envFeeds(): EmployerFeed[] {
       if (feed.type === "ashby" && typeof feed.board === "string") employer = { company, industry, type: "ashby", identifier: feed.board, enabled: true };
       if (feed.type === "smartrecruiters" && typeof feed.companyId === "string") employer = { company, industry, type: "smartrecruiters", identifier: feed.companyId, enabled: true };
       if (feed.type === "workday" && typeof feed.identifier === "string") employer = { company, industry, type: "workday", identifier: feed.identifier, enabled: true };
+      if (feed.type === "erecruit" && typeof feed.identifier === "string") employer = { company, industry, type: "erecruit", identifier: feed.identifier, enabled: true };
       if (employer && !isPlaceholder(employer.company, employer.identifier)) parsed.push(employer);
     }
     return parsed;
@@ -56,20 +57,29 @@ function envFeeds(): EmployerFeed[] {
 }
 
 function supabaseConfig() {
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const url = process.env.SUPABASE_URL?.trim().replace(/\/$/, "");
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
   return url && key ? { url, key } : null;
 }
 
 function supabaseHeaders(key: string, extra: Record<string, string> = {}) {
-  return { apikey: key, Authorization: `Bearer ${key}`, ...extra };
+  const headers: Record<string, string> = { apikey: key, ...extra };
+  // Legacy service-role keys are JWTs and can be used as Bearer tokens.
+  // New sb_secret_* keys authenticate through the apikey header and are not JWTs.
+  if (!key.startsWith("sb_secret_")) headers.Authorization = `Bearer ${key}`;
+  return headers;
 }
 
 async function readRegistry(): Promise<EmployerFeed[]> {
   const config = supabaseConfig();
   if (!config) return envFeeds();
-  const response = await fetch(`${config.url}/rest/v1/career_employers?select=id,company,industry,type,identifier,enabled&order=company.asc`, { headers: supabaseHeaders(config.key), cache: "no-store" });
-  if (!response.ok) throw new Error(`Registry read failed: ${response.status}`);
+  const response = await fetch(`${config.url}/rest/v1/career_employers?select=id,company,industry,type,identifier,enabled&order=company.asc`, {
+    headers: supabaseHeaders(config.key), cache: "no-store",
+  });
+  if (!response.ok) {
+    const detail = await response.text().catch(() => "");
+    throw new Error(`Registry read failed (${response.status})${detail ? `: ${detail.slice(0, 300)}` : ""}`);
+  }
   const feeds = (await response.json()) as EmployerFeed[];
   return feeds.filter((feed) => !isPlaceholder(feed.company, feed.identifier));
 }
@@ -84,6 +94,9 @@ async function testFeed(feed: EmployerFeed) {
       if (!response.ok) return { status: "error", httpStatus: response.status, jobs: 0 };
       const data = await response.json();
       return { status: "ok", httpStatus: response.status, jobs: Number(data.total ?? data.jobPostings?.length ?? 0) };
+    }
+    if (feed.type === "erecruit") {
+      return { status: "error", httpStatus: 0, jobs: 0, message: "eRecruit connector is not deployed yet" };
     }
 
     let url = "";
@@ -102,12 +115,13 @@ async function testFeed(feed: EmployerFeed) {
 }
 
 export async function GET(request: NextRequest) {
-  if (!authorised(request)) return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
+  if (!authorised(request)) return NextResponse.json({ error: "Unauthorised. Check CAREER_ADMIN_KEY and redeploy Production." }, { status: 401 });
   try {
     const feeds = await readRegistry();
     const diagnostics = await Promise.all(feeds.map(async (feed) => ({ ...feed, diagnostic: await testFeed(feed) })));
     return NextResponse.json({ storage: supabaseConfig() ? "supabase" : "vercel-environment", feeds: diagnostics });
   } catch (error) {
+    console.error("Employer registry load error", error);
     return NextResponse.json({ error: error instanceof Error ? error.message : "Could not load employer registry" }, { status: 500 });
   }
 }
