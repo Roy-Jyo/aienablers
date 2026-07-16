@@ -18,27 +18,63 @@ function authorised(request: NextRequest) {
 function envFeeds(): EmployerFeed[] {
   const raw = process.env.DIRECT_JOB_FEEDS;
   if (!raw) return [];
+
   try {
-    const feeds = JSON.parse(raw);
-    if (!Array.isArray(feeds)) return [];
-    return feeds.flatMap((feed: Record<string, unknown>) => {
-      const company = typeof feed.company === "string" ? feed.company : "";
-      const industry = typeof feed.industry === "string" ? feed.industry : "";
-      if (!company || typeof feed.type !== "string") return [];
-      if (feed.type === "greenhouse" && typeof feed.token === "string") {
-        return [{ company, industry, type: "greenhouse" as const, identifier: feed.token, enabled: true }];
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+
+    const employers: EmployerFeed[] = [];
+
+    for (const value of parsed) {
+      if (!value || typeof value !== "object") continue;
+
+      const feed = value as Record<string, unknown>;
+      const company = typeof feed.company === "string" ? feed.company.trim() : "";
+      const industry = typeof feed.industry === "string" ? feed.industry.trim() : "";
+      const type = typeof feed.type === "string" ? feed.type : "";
+
+      if (!company) continue;
+
+      if (type === "greenhouse" && typeof feed.token === "string" && feed.token.trim()) {
+        employers.push({
+          company,
+          industry,
+          type: "greenhouse",
+          identifier: feed.token.trim(),
+          enabled: true,
+        });
+      } else if (type === "lever" && typeof feed.site === "string" && feed.site.trim()) {
+        employers.push({
+          company,
+          industry,
+          type: "lever",
+          identifier: feed.site.trim(),
+          enabled: true,
+        });
+      } else if (type === "ashby" && typeof feed.board === "string" && feed.board.trim()) {
+        employers.push({
+          company,
+          industry,
+          type: "ashby",
+          identifier: feed.board.trim(),
+          enabled: true,
+        });
+      } else if (
+        type === "smartrecruiters" &&
+        typeof feed.companyId === "string" &&
+        feed.companyId.trim()
+      ) {
+        employers.push({
+          company,
+          industry,
+          type: "smartrecruiters",
+          identifier: feed.companyId.trim(),
+          enabled: true,
+        });
       }
-      if (feed.type === "lever" && typeof feed.site === "string") {
-        return [{ company, industry, type: "lever" as const, identifier: feed.site, enabled: true }];
-      }
-      if (feed.type === "ashby" && typeof feed.board === "string") {
-        return [{ company, industry, type: "ashby" as const, identifier: feed.board, enabled: true }];
-      }
-      if (feed.type === "smartrecruiters" && typeof feed.companyId === "string") {
-        return [{ company, industry, type: "smartrecruiters" as const, identifier: feed.companyId, enabled: true }];
-      }
-      return [];
-    });
+    }
+
+    return employers;
   } catch {
     return [];
   }
