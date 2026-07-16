@@ -4,7 +4,7 @@ import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { ArrowLeft, Building2, CheckCircle2, Loader2, Save } from "lucide-react";
 
-type Provider = "greenhouse" | "lever" | "ashby" | "smartrecruiters" | "workday";
+type Provider = "greenhouse" | "lever" | "ashby" | "smartrecruiters" | "workday" | "erecruit";
 
 const providerHelp: Record<Provider, string> = {
   greenhouse: "Enter the board token used in boards.greenhouse.io/{token}.",
@@ -12,6 +12,7 @@ const providerHelp: Record<Provider, string> = {
   ashby: "Enter the board name used in jobs.ashbyhq.com/{board}.",
   smartrecruiters: "Enter the company identifier used in jobs.smartrecruiters.com/{companyId}.",
   workday: "Enter host|tenant|career-site|locale. Example: company.wd3.myworkdayjobs.com|tenant|External|en-US",
+  erecruit: "Enter the public eRecruit base URL, for example https://woolworths.erecruit.co",
 };
 
 export default function AddEmployerPage() {
@@ -26,21 +27,32 @@ export default function AddEmployerPage() {
     event.preventDefault();
     setStatus("saving");
     setMessage("");
-    const response = await fetch("/api/career-intelligence/employers", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
-      body: JSON.stringify(form),
-    });
-    const data = await response.json();
-    if (!response.ok) {
+    try {
+      const response = await fetch("/api/career-intelligence/employers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-admin-key": adminKey },
+        body: JSON.stringify(form),
+      });
+      const data = await response.json().catch(() => ({ error: `Server returned ${response.status}` }));
+      if (!response.ok) {
+        setStatus("error");
+        setMessage(data.error ?? "Could not add employer.");
+        return;
+      }
+      setStatus("success");
+      setMessage(`${form.company} was added to the employer registry.`);
+      setForm({ company: "", industry: "hospitality", type: "greenhouse", identifier: "", enabled: true });
+    } catch (error) {
       setStatus("error");
-      setMessage(data.error ?? "Could not add employer.");
-      return;
+      setMessage(error instanceof Error ? error.message : "Could not add employer.");
     }
-    setStatus("success");
-    setMessage(`${form.company} was added to the employer registry.`);
-    setForm({ company: "", industry: "hospitality", type: "greenhouse", identifier: "", enabled: true });
   }
+
+  const placeholder = form.type === "workday"
+    ? "host|tenant|career-site|locale"
+    : form.type === "erecruit"
+      ? "https://employer.erecruit.co"
+      : "Board token / site / company ID";
 
   return (
     <main className="min-h-screen bg-slate-950 px-6 py-10 text-slate-100">
@@ -54,8 +66,8 @@ export default function AddEmployerPage() {
           <div className="mt-6 grid gap-5 md:grid-cols-2">
             <label className="block"><span className="mb-2 block text-sm font-medium text-slate-300">Company name</span><input required value={form.company} onChange={(e)=>setForm({...form,company:e.target.value})} className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none focus:border-indigo-500" placeholder="e.g. Woolworths Group"/></label>
             <label className="block"><span className="mb-2 block text-sm font-medium text-slate-300">Industry</span><select value={form.industry} onChange={(e)=>setForm({...form,industry:e.target.value})} className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none"><option value="hospitality">Hospitality</option><option value="business-finance">Business & finance</option><option value="retail">Retail</option><option value="technology">Technology</option><option value="healthcare">Healthcare</option><option value="government">Government</option><option value="education">Education</option><option value="trades">Trades</option><option value="other">Other</option></select></label>
-            <label className="block"><span className="mb-2 block text-sm font-medium text-slate-300">ATS provider</span><select value={form.type} onChange={(e)=>setForm({...form,type:e.target.value as Provider,identifier:""})} className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none"><option value="greenhouse">Greenhouse</option><option value="lever">Lever</option><option value="ashby">Ashby</option><option value="smartrecruiters">SmartRecruiters</option><option value="workday">Workday public careers</option></select></label>
-            <label className="block"><span className="mb-2 block text-sm font-medium text-slate-300">Board identifier</span><input required value={form.identifier} onChange={(e)=>setForm({...form,identifier:e.target.value})} className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none focus:border-indigo-500" placeholder={form.type === "workday" ? "host|tenant|career-site|locale" : "Board token / site / company ID"}/><span className="mt-2 block text-xs text-slate-500">{providerHelp[form.type]}</span></label>
+            <label className="block"><span className="mb-2 block text-sm font-medium text-slate-300">ATS provider</span><select value={form.type} onChange={(e)=>setForm({...form,type:e.target.value as Provider,identifier:""})} className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none"><option value="greenhouse">Greenhouse</option><option value="lever">Lever</option><option value="ashby">Ashby</option><option value="smartrecruiters">SmartRecruiters</option><option value="workday">Workday public careers</option><option value="erecruit">eRecruit public careers</option></select></label>
+            <label className="block"><span className="mb-2 block text-sm font-medium text-slate-300">Board identifier</span><input required value={form.identifier} onChange={(e)=>setForm({...form,identifier:e.target.value})} className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 outline-none focus:border-indigo-500" placeholder={placeholder}/><span className="mt-2 block text-xs text-slate-500">{providerHelp[form.type]}</span></label>
           </div>
 
           <label className="mt-5 flex items-center gap-3 text-sm text-slate-300"><input type="checkbox" checked={form.enabled} onChange={(e)=>setForm({...form,enabled:e.target.checked})} className="h-4 w-4"/> Enable this employer immediately</label>
