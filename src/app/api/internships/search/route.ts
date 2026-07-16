@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const ADZUNA_BASE_URL = "https://api.adzuna.com/v1/api/jobs/au/search/1";
+const NAB_CAREERS_URL = "https://careers.nab.com.au/jobs/search";
 
 const STOP_WORDS = new Set([
   "i", "im", "i'm", "am", "we", "are", "is", "the", "a", "an", "for", "to",
@@ -273,6 +274,71 @@ async function fetchSmartRecruiters(
   }
 }
 
+function decodeHtml(value: string) {
+  return value
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+async function fetchNabCareers(): Promise<JobResult[]> {
+  try {
+    const pages = await Promise.all(
+      [1, 2, 3, 4].map(async (page) => {
+        const response = await fetch(`${NAB_CAREERS_URL}?page=${page}`, {
+          headers: { Accept: "text/html", "User-Agent": "AIEnablers-Career-Intelligence/1.0" },
+          next: { revalidate: 900 },
+        });
+        return response.ok ? response.text() : "";
+      }),
+    );
+
+    const jobs: JobResult[] = [];
+    const seen = new Set<string>();
+    const anchorPattern = /<a[^>]+href=["']([^"']*\/jobs\/[^"'#?]+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+
+    for (const html of pages) {
+      let match: RegExpExecArray | null;
+      while ((match = anchorPattern.exec(html)) !== null) {
+        const href = match[1];
+        const title = decodeHtml(match[2]);
+        if (!title || /^read more$/i.test(title) || seen.has(href)) continue;
+        seen.add(href);
+
+        const contextStart = Math.max(0, match.index - 500);
+        const contextEnd = Math.min(html.length, match.index + match[0].length + 1800);
+        const context = decodeHtml(html.slice(contextStart, contextEnd));
+        const absoluteUrl = href.startsWith("http") ? href : `https://careers.nab.com.au${href.startsWith("/") ? "" : "/"}${href}`;
+        const locationMatch = context.match(/(?:NSW|VIC|QLD|WA|SA|TAS|NT|ACT|Australia)[^|•]{0,90}/i);
+
+        jobs.push({
+          id: `nab-${href}`,
+          title,
+          company: "NAB",
+          location: locationMatch?.[0]?.trim() || "Australia",
+          description: context.slice(0, 900),
+          created: null,
+          url: absoluteUrl,
+          salaryMin: null,
+          salaryMax: null,
+          category: "Banking & Financial Services",
+          source: "NAB careers",
+          directEmployer: true,
+        });
+      }
+    }
+
+    return jobs;
+  } catch (error) {
+    console.error("NAB careers feed error", error);
+    return [];
+  }
+}
+
 function fetchDirectFeed(feed: DirectFeed): Promise<JobResult[]> {
   switch (feed.type) {
     case "greenhouse":
@@ -314,7 +380,7 @@ export async function GET(request: NextRequest) {
 
   const intent = extractSearchIntent(naturalLanguageQuery);
   const directFeeds = parseDirectFeeds();
-  const directPromises = directFeeds.map(fetchDirectFeed);
+  const directPromises = [...directFeeds.map(fetchDirectFeed), fetchNabCareers()];
 
   let adzunaPromise: Promise<JobResult[]> = Promise.resolve([]);
   let providerCount = 0;
@@ -380,7 +446,7 @@ export async function GET(request: NextRequest) {
       interpretedQuery: intent.keywords,
       interpretedSearch: intent,
       directEmployerCount: ranked.filter((job) => job.directEmployer).length,
-      activeDirectFeeds: directFeeds.length,
+      activeDirectFeeds: directFeeds.length + 1,
       results: ranked,
     });
   } catch (error) {
