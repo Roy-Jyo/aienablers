@@ -37,7 +37,6 @@ export async function GET(request: NextRequest) {
     what: `${keywords} internship intern student`,
     where: location,
     sort_by: "date",
-    content_type: "application/json",
   });
 
   try {
@@ -47,9 +46,13 @@ export async function GET(request: NextRequest) {
     });
 
     if (!response.ok) {
-      console.error("Adzuna search failed", response.status, await response.text());
+      const upstreamBody = await response.text();
+      console.error("Adzuna search failed", response.status, upstreamBody);
       return NextResponse.json(
-        { error: "The internship provider is temporarily unavailable." },
+        {
+          error: "The internship provider rejected the search request.",
+          providerStatus: response.status,
+        },
         { status: 502 },
       );
     }
