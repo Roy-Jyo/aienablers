@@ -38,107 +38,62 @@ type JobResult = {
   directEmployer: boolean;
 };
 
+type WorkdayConfig = { host: string; tenant: string; site: string; locale: string };
 type DirectFeed =
   | { type: "greenhouse"; token: string; company: string }
   | { type: "lever"; site: string; company: string }
   | { type: "ashby"; board: string; company: string }
-  | { type: "smartrecruiters"; companyId: string; company: string };
+  | { type: "smartrecruiters"; companyId: string; company: string }
+  | ({ type: "workday"; company: string } & WorkdayConfig);
 
 function clean(value: string | null, maxLength: number) {
   return (value ?? "").trim().slice(0, maxLength);
 }
 
 function extractSearchIntent(input: string) {
-  const normalised = input
-    .toLowerCase()
-    .replace(/[’]/g, "'")
-    .replace(/[^a-z0-9+#.$\-/\s']/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-
-  const careerStage = /\bintern(ship)?\b/.test(normalised)
-    ? "internship"
-    : /\bapprentice(ship)?\b/.test(normalised)
-      ? "apprenticeship"
-      : /\btrainee(ship)?\b/.test(normalised)
-        ? "traineeship"
-        : /\bcadet(ship)?\b/.test(normalised)
-          ? "cadetship"
-          : /\bgraduate|grad\b/.test(normalised)
-            ? "graduate"
-            : /\bentry[ -]?level|junior\b/.test(normalised)
-              ? "entry level"
-              : null;
-
-  const requestedSeniority = /\b(?:chief|executive|director|head of|general manager|senior manager|manager|lead|principal)\b/.test(normalised)
-    ? "senior"
-    : careerStage
-      ? "early-career"
-      : null;
-
-  const workArrangement = /\bremote\b/.test(normalised)
-    ? "remote"
-    : /\bhybrid\b/.test(normalised)
-      ? "hybrid"
-      : /\bon[ -]?site|office based\b/.test(normalised)
-        ? "onsite"
-        : null;
-
-  const employmentType = /\bpart[ -]?time\b/.test(normalised)
-    ? "part time"
-    : /\bfull[ -]?time\b/.test(normalised)
-      ? "full time"
-      : /\bcontract(or)?|freelance\b/.test(normalised)
-        ? "contract"
-        : /\bpermanent\b/.test(normalised)
-          ? "permanent"
-          : /\bcasual\b/.test(normalised)
-            ? "casual"
-            : null;
-
+  const normalised = input.toLowerCase().replace(/[’]/g, "'").replace(/[^a-z0-9+#.$\-/\s']/g, " ").replace(/\s+/g, " ").trim();
+  const careerStage = /\bintern(ship)?\b/.test(normalised) ? "internship"
+    : /\bapprentice(ship)?\b/.test(normalised) ? "apprenticeship"
+    : /\btrainee(ship)?\b/.test(normalised) ? "traineeship"
+    : /\bcadet(ship)?\b/.test(normalised) ? "cadetship"
+    : /\bgraduate|grad\b/.test(normalised) ? "graduate"
+    : /\bentry[ -]?level|junior\b/.test(normalised) ? "entry level" : null;
+  const requestedSeniority = /\b(?:chief|executive|director|head of|general manager|senior manager|manager|lead|principal)\b/.test(normalised) ? "senior" : careerStage ? "early-career" : null;
+  const workArrangement = /\bremote\b/.test(normalised) ? "remote" : /\bhybrid\b/.test(normalised) ? "hybrid" : /\bon[ -]?site|office based\b/.test(normalised) ? "onsite" : null;
+  const employmentType = /\bpart[ -]?time\b/.test(normalised) ? "part time" : /\bfull[ -]?time\b/.test(normalised) ? "full time" : /\bcontract(or)?|freelance\b/.test(normalised) ? "contract" : /\bpermanent\b/.test(normalised) ? "permanent" : /\bcasual\b/.test(normalised) ? "casual" : null;
   const experienceMatch = normalised.match(/\b(\d{1,2})\+?\s*(?:year|years|yr|yrs)\b/);
   const experienceYears = experienceMatch ? Number(experienceMatch[1]) : null;
   const salaryMatch = normalised.match(/(?:\$|aud\s*)?(\d{2,3})(?:k|,000)\b/);
   const salaryMin = salaryMatch ? Number(salaryMatch[1]) * 1000 : null;
 
   let stripped = normalised;
-  const removablePhrases = [
-    /\b(?:i am|i'm|im|we are|we're)\b/g,
-    /\b(?:looking|searching|seeking|hoping)\s+for\b/g,
-    /\b(?:show|find|give)\s+me\b/g,
-    /\b(?:full[ -]?time|part[ -]?time|permanent|contract(?:or)?|freelance|casual)\b/g,
+  for (const phrase of [
+    /\b(?:i am|i'm|im|we are|we're)\b/g, /\b(?:looking|searching|seeking|hoping)\s+for\b/g,
+    /\b(?:show|find|give)\s+me\b/g, /\b(?:full[ -]?time|part[ -]?time|permanent|contract(?:or)?|freelance|casual)\b/g,
     /\b(?:remote|hybrid|on[ -]?site|onsite|office based)\b/g,
     /\b(?:internship|intern|traineeship|trainee|apprenticeship|apprentice|cadetship|cadet|graduate|grad|entry[ -]?level|junior)\b/g,
     /\b\d{1,2}\+?\s*(?:year|years|yr|yrs)(?:\s+of)?\s+experience\b/g,
     /(?:\$|aud\s*)?\d{2,3}(?:k|,000)(?:\s*(?:or more|plus|minimum|min))?/g,
-  ];
-  for (const phrase of removablePhrases) stripped = stripped.replace(phrase, " ");
+  ]) stripped = stripped.replace(phrase, " ");
 
-  const keywords = stripped
-    .split(/\s+/)
-    .filter(Boolean)
-    .filter((term) => !STOP_WORDS.has(term))
-    .join(" ")
-    .replace(/\s+/g, " ")
-    .trim() || normalised;
-
+  const keywords = stripped.split(/\s+/).filter(Boolean).filter((term) => !STOP_WORDS.has(term)).join(" ").replace(/\s+/g, " ").trim() || normalised;
   const taxonomyTerms = TAXONOMY.find((group) => group.match.test(normalised))?.terms ?? [];
   const coreTerms = Array.from(new Set([...keywords.split(/\s+/).filter((term) => term.length > 2), ...taxonomyTerms]));
-  const stageProviderTerm: Record<string, string> = {
-    internship: "intern internship",
-    apprenticeship: "apprentice apprenticeship",
-    traineeship: "trainee traineeship",
-    cadetship: "cadet cadetship",
-    graduate: "graduate",
-    "entry level": "entry level junior",
-  };
+  const stageProviderTerm: Record<string, string> = { internship: "intern internship", apprenticeship: "apprentice apprenticeship", traineeship: "trainee traineeship", cadetship: "cadet cadetship", graduate: "graduate", "entry level": "entry level junior" };
   const providerTerms = [keywords, careerStage ? stageProviderTerm[careerStage] : null].filter(Boolean).join(" ");
-
   return { keywords, providerTerms, coreTerms, careerStage, requestedSeniority, workArrangement, employmentType, experienceYears, salaryMin };
 }
 
 function isPlaceholder(value: string) {
   return /company name|company-board|company-site|company-identifier|employer name|verified-/i.test(value);
+}
+
+function parseWorkdayIdentifier(identifier: string): WorkdayConfig | null {
+  const parts = identifier.split("|").map((part) => part.trim());
+  if (parts.length < 3) return null;
+  const [host, tenant, site, locale = "en-US"] = parts;
+  if (!host || !tenant || !site || !/^[a-z0-9.-]+$/i.test(host)) return null;
+  return { host: host.replace(/^https?:\/\//, "").replace(/\/$/, ""), tenant, site, locale };
 }
 
 function parseDirectFeeds(): DirectFeed[] {
@@ -147,15 +102,19 @@ function parseDirectFeeds(): DirectFeed[] {
   try {
     const feeds = JSON.parse(raw);
     if (!Array.isArray(feeds)) return [];
-    return feeds.filter((feed): feed is DirectFeed => {
-      if (!feed || typeof feed !== "object" || typeof feed.company !== "string" || isPlaceholder(feed.company)) return false;
-      return (
-        (feed.type === "greenhouse" && typeof feed.token === "string" && !isPlaceholder(feed.token)) ||
-        (feed.type === "lever" && typeof feed.site === "string" && !isPlaceholder(feed.site)) ||
-        (feed.type === "ashby" && typeof feed.board === "string" && !isPlaceholder(feed.board)) ||
-        (feed.type === "smartrecruiters" && typeof feed.companyId === "string" && !isPlaceholder(feed.companyId))
-      );
-    });
+    const parsed: DirectFeed[] = [];
+    for (const feed of feeds as Record<string, unknown>[]) {
+      if (!feed || typeof feed.company !== "string" || typeof feed.type !== "string" || isPlaceholder(feed.company)) continue;
+      if (feed.type === "greenhouse" && typeof feed.token === "string" && !isPlaceholder(feed.token)) parsed.push({ type: "greenhouse", token: feed.token, company: feed.company });
+      if (feed.type === "lever" && typeof feed.site === "string" && !isPlaceholder(feed.site)) parsed.push({ type: "lever", site: feed.site, company: feed.company });
+      if (feed.type === "ashby" && typeof feed.board === "string" && !isPlaceholder(feed.board)) parsed.push({ type: "ashby", board: feed.board, company: feed.company });
+      if (feed.type === "smartrecruiters" && typeof feed.companyId === "string" && !isPlaceholder(feed.companyId)) parsed.push({ type: "smartrecruiters", companyId: feed.companyId, company: feed.company });
+      if (feed.type === "workday" && typeof feed.identifier === "string") {
+        const config = parseWorkdayIdentifier(feed.identifier);
+        if (config) parsed.push({ type: "workday", company: feed.company, ...config });
+      }
+    }
+    return parsed;
   } catch (error) {
     console.error("Invalid DIRECT_JOB_FEEDS configuration", error);
     return [];
@@ -164,13 +123,9 @@ function parseDirectFeeds(): DirectFeed[] {
 
 function relevanceScore(job: JobResult, intent: ReturnType<typeof extractSearchIntent>) {
   const title = job.title.toLowerCase();
-  const description = job.description.toLowerCase();
-  const category = (job.category ?? "").toLowerCase();
-  const text = `${title} ${description} ${category}`;
-
+  const text = `${title} ${job.description.toLowerCase()} ${(job.category ?? "").toLowerCase()}`;
   const seniorTitle = /\b(?:chief|ceo|cfo|cio|cto|executive|director|head(?: of)?|general manager|senior manager|manager|team lead|tech lead|engineering lead|practice lead|principal|vice president|vp)\b/i;
   const earlyCareerTitle = /\b(?:intern(?:ship)?|trainee(?:ship)?|apprentice(?:ship)?|cadet(?:ship)?|graduate|grad program|vacation program|summer program|early career|entry[ -]?level|junior|associate|first year|second year|third year|fourth year)\b/i;
-
   if (intent.requestedSeniority === "early-career" && seniorTitle.test(title)) return 0;
 
   let titleMatches = 0;
@@ -180,7 +135,6 @@ function relevanceScore(job: JobResult, intent: ReturnType<typeof extractSearchI
     if (title.includes(value)) titleMatches += 1;
     else if (text.includes(value)) bodyMatches += 1;
   }
-
   const compatibleStageTerms: Record<string, string[]> = {
     internship: ["intern", "internship", "trainee", "traineeship", "apprentice", "apprenticeship", "cadet", "cadetship", "vacation program", "summer program", "graduate", "grad program", "early career", "entry level", "junior"],
     apprenticeship: ["apprentice", "apprenticeship", "first year", "second year", "third year", "fourth year", "trade assistant", "trainee", "traineeship"],
@@ -189,14 +143,8 @@ function relevanceScore(job: JobResult, intent: ReturnType<typeof extractSearchI
     graduate: ["graduate", "grad program", "early career", "entry level", "junior", "associate", "trainee", "cadet"],
     "entry level": ["entry level", "junior", "associate", "trainee", "apprentice", "cadet", "graduate", "early career"],
   };
-
-  const stageMatched = intent.careerStage
-    ? compatibleStageTerms[intent.careerStage].some((term) => text.includes(term))
-    : false;
-
-  const hasRoleRelevance = titleMatches > 0 || bodyMatches >= 2;
-  if (!hasRoleRelevance) return 0;
-
+  const stageMatched = intent.careerStage ? compatibleStageTerms[intent.careerStage].some((term) => text.includes(term)) : false;
+  if (!(titleMatches > 0 || bodyMatches >= 2)) return 0;
   if (["internship", "apprenticeship", "traineeship", "cadetship"].includes(intent.careerStage ?? "") && !stageMatched) return 0;
   if ((intent.careerStage === "graduate" || intent.careerStage === "entry level") && seniorTitle.test(title)) return 0;
 
@@ -211,9 +159,8 @@ function relevanceScore(job: JobResult, intent: ReturnType<typeof extractSearchI
 
 function matchesLocation(job: JobResult, location: string) {
   if (!location || location.toLowerCase() === "australia") return true;
-  const wanted = location.toLowerCase();
   const actual = `${job.location} ${job.description}`.toLowerCase();
-  return actual.includes(wanted) || actual.includes("remote");
+  return actual.includes(location.toLowerCase()) || actual.includes("remote");
 }
 
 async function fetchGreenhouse(feed: Extract<DirectFeed, { type: "greenhouse" }>): Promise<JobResult[]> {
@@ -250,6 +197,47 @@ async function fetchSmartRecruiters(feed: Extract<DirectFeed, { type: "smartrecr
     const data = await response.json();
     return (Array.isArray(data.content) ? data.content : []).map((job: Record<string, any>) => ({ id: `smartrecruiters-${feed.companyId}-${job.id}`, title: job.name ?? "Job opportunity", company: feed.company, location: [job.location?.city, job.location?.region, job.location?.country].filter(Boolean).join(", ") || "Location not listed", description: job.jobAd?.sections?.jobDescription?.text ?? job.jobAd?.sections?.companyDescription?.text ?? "", created: job.releasedDate ?? null, url: job.ref ?? `https://jobs.smartrecruiters.com/${feed.companyId}/${job.id}`, salaryMin: null, salaryMax: null, category: job.department?.label ?? job.function?.label ?? null, source: `${feed.company} careers`, directEmployer: true }));
   } catch { return []; }
+}
+
+async function fetchWorkday(feed: Extract<DirectFeed, { type: "workday" }>): Promise<JobResult[]> {
+  const endpoint = `https://${feed.host}/wday/cxs/${encodeURIComponent(feed.tenant)}/${encodeURIComponent(feed.site)}/jobs`;
+  const jobs: JobResult[] = [];
+  try {
+    for (let offset = 0; offset < 1000; offset += 100) {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { Accept: "application/json", "Content-Type": "application/json" },
+        body: JSON.stringify({ appliedFacets: {}, limit: 100, offset, searchText: "" }),
+        next: { revalidate: 900 },
+      });
+      if (!response.ok) break;
+      const data = await response.json();
+      const postings = Array.isArray(data.jobPostings) ? data.jobPostings : [];
+      for (const job of postings as Record<string, any>[]) {
+        const externalPath = typeof job.externalPath === "string" ? job.externalPath : "";
+        if (!externalPath) continue;
+        jobs.push({
+          id: `workday-${feed.tenant}-${feed.site}-${externalPath}`,
+          title: job.title ?? "Job opportunity",
+          company: feed.company,
+          location: job.locationsText ?? job.location ?? "Location not listed",
+          description: [job.title, job.locationsText, job.bulletFields?.join(" ")].filter(Boolean).join(" "),
+          created: job.postedOn ?? null,
+          url: `https://${feed.host}/${feed.locale}/${feed.site}${externalPath.startsWith("/") ? externalPath : `/${externalPath}`}`,
+          salaryMin: null,
+          salaryMax: null,
+          category: job.jobFamily ?? null,
+          source: `${feed.company} careers`,
+          directEmployer: true,
+        });
+      }
+      if (!postings.length || jobs.length >= Number(data.total ?? jobs.length)) break;
+    }
+    return jobs;
+  } catch (error) {
+    console.error("Workday feed error", feed.company, error);
+    return [];
+  }
 }
 
 function decodeHtml(value: string) {
@@ -290,6 +278,7 @@ function fetchDirectFeed(feed: DirectFeed): Promise<JobResult[]> {
     case "lever": return fetchLever(feed);
     case "ashby": return fetchAshby(feed);
     case "smartrecruiters": return fetchSmartRecruiters(feed);
+    case "workday": return fetchWorkday(feed);
   }
 }
 
@@ -327,7 +316,6 @@ export async function GET(request: NextRequest) {
   const intent = extractSearchIntent(naturalLanguageQuery);
   const directFeeds = parseDirectFeeds();
   const directPromises = [...directFeeds.map(fetchDirectFeed), fetchNabCareers()];
-
   try {
     let providerCount = 0;
     let adzunaJobs: JobResult[] = [];
@@ -341,16 +329,9 @@ export async function GET(request: NextRequest) {
         adzunaJobs = fallback.jobs;
       }
     }
-
     const directGroups = await Promise.all(directPromises);
     const directJobs = directGroups.flat().filter((job) => matchesLocation(job, location));
-    const ranked = deduplicate([...directJobs, ...adzunaJobs])
-      .map((job) => ({ job, score: relevanceScore(job, intent) }))
-      .filter(({ score }) => score > 0)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 25)
-      .map(({ job }) => job);
-
+    const ranked = deduplicate([...directJobs, ...adzunaJobs]).map((job) => ({ job, score: relevanceScore(job, intent) })).filter(({ score }) => score > 0).sort((a, b) => b.score - a.score).slice(0, 25).map(({ job }) => job);
     return NextResponse.json({ count: ranked.length, providerCount: providerCount + directJobs.length, interpretedQuery: intent.keywords, interpretedSearch: intent, directEmployerCount: ranked.filter((job) => job.directEmployer).length, activeDirectFeeds: directFeeds.length + 1, results: ranked });
   } catch (error) {
     console.error("Career Intelligence search error", error);
