@@ -2,39 +2,36 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { Menu } from 'lucide-react';
+import { ChevronDown, Menu } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [jobsOpen, setJobsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const jobsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (
-        menuRef.current &&
-        !menuRef.current.contains(event.target as Node)
-      ) {
-        setMenuOpen(false);
-      }
+      const target = event.target as Node;
+      if (menuRef.current && !menuRef.current.contains(target)) setMenuOpen(false);
+      if (jobsRef.current && !jobsRef.current.contains(target)) setJobsOpen(false);
     }
 
     function handleEsc(event: KeyboardEvent) {
       if (event.key === 'Escape') {
         setMenuOpen(false);
+        setJobsOpen(false);
       }
     }
 
-    if (menuOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      document.addEventListener('keydown', handleEsc);
-    }
-
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEsc);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleEsc);
     };
-  }, [menuOpen]);
+  }, []);
 
   return (
     <nav className="w-full bg-white shadow-sm sticky top-0 z-50">
@@ -44,24 +41,37 @@ export default function Navbar() {
         </Link>
 
         <div className="flex items-center gap-4 sm:gap-6 relative">
-          <Link
-            href="/internship-search"
-            className="text-gray-700 hover:text-blue-600 font-medium transition"
-          >
-            Internship Search
-          </Link>
+          <div ref={jobsRef} className="relative hidden sm:block">
+            <button
+              type="button"
+              onClick={() => setJobsOpen((open) => !open)}
+              className="flex items-center gap-1 text-gray-700 hover:text-blue-600 font-medium transition"
+              aria-expanded={jobsOpen}
+            >
+              Job Board <ChevronDown size={17} />
+            </button>
 
-          <Link
-            href="/job-board"
-            className="hidden sm:block text-gray-700 hover:text-blue-600 font-medium transition"
-          >
-            Job Board
-          </Link>
+            <AnimatePresence>
+              {jobsOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.16 }}
+                  className="absolute left-0 top-9 w-56 overflow-hidden rounded-xl border border-gray-200 bg-white py-2 shadow-lg"
+                >
+                  <Link href="/job-board" onClick={() => setJobsOpen(false)} className="block px-5 py-3 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-700">
+                    AIEnablers Jobs
+                  </Link>
+                  <Link href="/job-market-search" onClick={() => setJobsOpen(false)} className="block px-5 py-3 text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-700">
+                    Job Market Search
+                  </Link>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
 
-          <Link
-            href="/cost-saving"
-            className="hidden lg:block text-gray-700 hover:text-blue-600 font-medium transition"
-          >
+          <Link href="/cost-saving" className="hidden lg:block text-gray-700 hover:text-blue-600 font-medium transition">
             Calculate Cost Saving
           </Link>
 
@@ -87,11 +97,11 @@ export default function Navbar() {
                 <Link href="/about" className="block px-6 py-2 text-gray-700 hover:text-blue-600 font-medium transition" onClick={() => setMenuOpen(false)}>
                   About Us
                 </Link>
-                <Link href="/internship-search" className="block px-6 py-2 text-gray-700 hover:text-blue-600 font-medium transition sm:hidden" onClick={() => setMenuOpen(false)}>
-                  Internship Search
-                </Link>
                 <Link href="/job-board" className="block px-6 py-2 text-gray-700 hover:text-blue-600 font-medium transition sm:hidden" onClick={() => setMenuOpen(false)}>
-                  Job Board
+                  AIEnablers Jobs
+                </Link>
+                <Link href="/job-market-search" className="block px-6 py-2 text-gray-700 hover:text-blue-600 font-medium transition sm:hidden" onClick={() => setMenuOpen(false)}>
+                  Job Market Search
                 </Link>
                 <Link href="/cost-saving" className="block px-6 py-2 text-gray-700 hover:text-blue-600 font-medium transition lg:hidden" onClick={() => setMenuOpen(false)}>
                   Calculate Cost Saving
