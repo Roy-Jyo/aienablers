@@ -10,8 +10,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/knowledge",
     "/knowledge/ai-in-recruitment",
     "/knowledge/autonomous-hiring",
-
-    // ✅ Add RaaS landing page here
+    "/job-board",
+    "/internship-search",
     "/recruitment-as-a-service",
   ];
 
@@ -21,16 +21,17 @@ export default function sitemap(): MetadataRoute.Sitemap {
     url: `${SITE}${path}`,
     lastModified: now,
     changeFrequency:
-      path === "/recruitment-as-a-service"
-        ? "monthly"
-        : path.startsWith("/knowledge")
+      path === "/internship-search" || path === "/job-board"
+        ? "daily"
+        : path === "/recruitment-as-a-service" || path.startsWith("/knowledge")
         ? "monthly"
         : "weekly",
-
     priority:
-      path === "/recruitment-as-a-service"
+      path === "/internship-search"
         ? 0.9
-        : path === "/knowledge"
+        : path === "/recruitment-as-a-service"
+        ? 0.9
+        : path === "/job-board" || path === "/knowledge"
         ? 0.8
         : path.startsWith("/knowledge")
         ? 0.7
