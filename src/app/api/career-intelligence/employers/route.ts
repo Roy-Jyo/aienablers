@@ -18,63 +18,20 @@ function authorised(request: NextRequest) {
 function envFeeds(): EmployerFeed[] {
   const raw = process.env.DIRECT_JOB_FEEDS;
   if (!raw) return [];
-
   try {
-    const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-
-    const employers: EmployerFeed[] = [];
-
-    for (const value of parsed) {
-      if (!value || typeof value !== "object") continue;
-
-      const feed = value as Record<string, unknown>;
-      const company = typeof feed.company === "string" ? feed.company.trim() : "";
-      const industry = typeof feed.industry === "string" ? feed.industry.trim() : "";
-      const type = typeof feed.type === "string" ? feed.type : "";
-
-      if (!company) continue;
-
-      if (type === "greenhouse" && typeof feed.token === "string" && feed.token.trim()) {
-        employers.push({
-          company,
-          industry,
-          type: "greenhouse",
-          identifier: feed.token.trim(),
-          enabled: true,
-        });
-      } else if (type === "lever" && typeof feed.site === "string" && feed.site.trim()) {
-        employers.push({
-          company,
-          industry,
-          type: "lever",
-          identifier: feed.site.trim(),
-          enabled: true,
-        });
-      } else if (type === "ashby" && typeof feed.board === "string" && feed.board.trim()) {
-        employers.push({
-          company,
-          industry,
-          type: "ashby",
-          identifier: feed.board.trim(),
-          enabled: true,
-        });
-      } else if (
-        type === "smartrecruiters" &&
-        typeof feed.companyId === "string" &&
-        feed.companyId.trim()
-      ) {
-        employers.push({
-          company,
-          industry,
-          type: "smartrecruiters",
-          identifier: feed.companyId.trim(),
-          enabled: true,
-        });
-      }
+    const feeds = JSON.parse(raw);
+    if (!Array.isArray(feeds)) return [];
+    const parsed: EmployerFeed[] = [];
+    for (const feed of feeds as Record<string, unknown>[]) {
+      const company = typeof feed.company === "string" ? feed.company : "";
+      const industry = typeof feed.industry === "string" ? feed.industry : "";
+      if (!company || typeof feed.type !== "string") continue;
+      if (feed.type === "greenhouse" && typeof feed.token === "string") parsed.push({ company, industry, type: "greenhouse", identifier: feed.token, enabled: true });
+      if (feed.type === "lever" && typeof feed.site === "string") parsed.push({ company, industry, type: "lever", identifier: feed.site, enabled: true });
+      if (feed.type === "ashby" && typeof feed.board === "string") parsed.push({ company, industry, type: "ashby", identifier: feed.board, enabled: true });
+      if (feed.type === "smartrecruiters" && typeof feed.companyId === "string") parsed.push({ company, industry, type: "smartrecruiters", identifier: feed.companyId, enabled: true });
     }
-
-    return employers;
+    return parsed;
   } catch {
     return [];
   }
@@ -86,19 +43,16 @@ function supabaseConfig() {
   return url && key ? { url, key } : null;
 }
 
+function supabaseHeaders(key: string, extra: Record<string, string> = {}) {
+  return { apikey: key, Authorization: `Bearer ${key}`, ...extra };
+}
+
 async function readRegistry(): Promise<EmployerFeed[]> {
   const config = supabaseConfig();
   if (!config) return envFeeds();
-  const response = await fetch(
-    `${config.url}/rest/v1/career_employers?select=id,company,industry,type,identifier,enabled&order=company.asc`,
-    {
-      headers: {
-        apikey: config.key,
-        Authorization: `Bearer ${config.key}`,
-      },
-      cache: "no-store",
-    },
-  );
+  const response = await fetch(`${config.url}/rest/v1/career_employers?select=id,company,industry,type,identifier,enabled&order=company.asc`, {
+    headers: supabaseHeaders(config.key), cache: "no-store",
+  });
   if (!response.ok) throw new Error(`Registry read failed: ${response.status}`);
   return response.json();
 }
@@ -109,18 +63,11 @@ async function testFeed(feed: EmployerFeed) {
   if (feed.type === "lever") url = `https://api.lever.co/v0/postings/${encodeURIComponent(feed.identifier)}?mode=json`;
   if (feed.type === "ashby") url = `https://api.ashbyhq.com/posting-api/job-board/${encodeURIComponent(feed.identifier)}`;
   if (feed.type === "smartrecruiters") url = `https://api.smartrecruiters.com/v1/companies/${encodeURIComponent(feed.identifier)}/postings?limit=100`;
-
   try {
     const response = await fetch(url, { headers: { Accept: "application/json" }, cache: "no-store" });
     if (!response.ok) return { status: "error", httpStatus: response.status, jobs: 0 };
     const data = await response.json();
-    const jobs = Array.isArray(data)
-      ? data.length
-      : Array.isArray(data.jobs)
-        ? data.jobs.length
-        : Array.isArray(data.content)
-          ? data.content.length
-          : 0;
+    const jobs = Array.isArray(data) ? data.length : Array.isArray(data.jobs) ? data.jobs.length : Array.isArray(data.content) ? data.content.length : 0;
     return { status: "ok", httpStatus: response.status, jobs };
   } catch (error) {
     return { status: "error", httpStatus: 0, jobs: 0, message: error instanceof Error ? error.message : "Feed test failed" };
@@ -131,54 +78,54 @@ export async function GET(request: NextRequest) {
   if (!authorised(request)) return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
   try {
     const feeds = await readRegistry();
-    const diagnostics = await Promise.all(
-      feeds.map(async (feed) => ({ ...feed, diagnostic: await testFeed(feed) })),
-    );
-    return NextResponse.json({
-      storage: supabaseConfig() ? "supabase" : "vercel-environment",
-      feeds: diagnostics,
-    });
+    const diagnostics = await Promise.all(feeds.map(async (feed) => ({ ...feed, diagnostic: await testFeed(feed) })));
+    return NextResponse.json({ storage: supabaseConfig() ? "supabase" : "vercel-environment", feeds: diagnostics });
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Could not load employer registry" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Could not load employer registry" }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
   if (!authorised(request)) return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
   const config = supabaseConfig();
-  if (!config) {
-    return NextResponse.json(
-      { error: "Supabase is not configured. The current Vercel environment registry is read-only." },
-      { status: 503 },
-    );
-  }
-
+  if (!config) return NextResponse.json({ error: "Supabase is not configured. The current Vercel environment registry is read-only." }, { status: 503 });
   const body = (await request.json()) as EmployerFeed;
-  if (!body.company || !body.type || !body.identifier) {
-    return NextResponse.json({ error: "Company, provider type and identifier are required." }, { status: 400 });
-  }
-
+  if (!body.company || !body.type || !body.identifier) return NextResponse.json({ error: "Company, provider type and identifier are required." }, { status: 400 });
   const response = await fetch(`${config.url}/rest/v1/career_employers`, {
     method: "POST",
-    headers: {
-      apikey: config.key,
-      Authorization: `Bearer ${config.key}`,
-      "Content-Type": "application/json",
-      Prefer: "return=representation",
-    },
-    body: JSON.stringify({
-      company: body.company.trim(),
-      industry: body.industry?.trim() || null,
-      type: body.type,
-      identifier: body.identifier.trim(),
-      enabled: body.enabled ?? true,
-    }),
+    headers: supabaseHeaders(config.key, { "Content-Type": "application/json", Prefer: "return=representation" }),
+    body: JSON.stringify({ company: body.company.trim(), industry: body.industry?.trim() || null, type: body.type, identifier: body.identifier.trim(), enabled: body.enabled ?? true }),
   });
-
   const data = await response.json().catch(() => null);
   if (!response.ok) return NextResponse.json({ error: data?.message ?? "Could not add employer" }, { status: response.status });
   return NextResponse.json({ employer: Array.isArray(data) ? data[0] : data }, { status: 201 });
+}
+
+export async function PATCH(request: NextRequest) {
+  if (!authorised(request)) return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
+  const config = supabaseConfig();
+  if (!config) return NextResponse.json({ error: "Supabase is required to update employers." }, { status: 503 });
+  const body = (await request.json()) as EmployerFeed;
+  if (!body.id) return NextResponse.json({ error: "Employer ID is required." }, { status: 400 });
+  const response = await fetch(`${config.url}/rest/v1/career_employers?id=eq.${encodeURIComponent(body.id)}`, {
+    method: "PATCH",
+    headers: supabaseHeaders(config.key, { "Content-Type": "application/json", Prefer: "return=representation" }),
+    body: JSON.stringify({ company: body.company, industry: body.industry || null, type: body.type, identifier: body.identifier, enabled: body.enabled ?? true }),
+  });
+  const data = await response.json().catch(() => null);
+  if (!response.ok) return NextResponse.json({ error: data?.message ?? "Could not update employer" }, { status: response.status });
+  return NextResponse.json({ employer: Array.isArray(data) ? data[0] : data });
+}
+
+export async function DELETE(request: NextRequest) {
+  if (!authorised(request)) return NextResponse.json({ error: "Unauthorised" }, { status: 401 });
+  const config = supabaseConfig();
+  if (!config) return NextResponse.json({ error: "Supabase is required to delete employers." }, { status: 503 });
+  const id = request.nextUrl.searchParams.get("id");
+  if (!id) return NextResponse.json({ error: "Employer ID is required." }, { status: 400 });
+  const response = await fetch(`${config.url}/rest/v1/career_employers?id=eq.${encodeURIComponent(id)}`, {
+    method: "DELETE", headers: supabaseHeaders(config.key),
+  });
+  if (!response.ok) return NextResponse.json({ error: "Could not delete employer" }, { status: response.status });
+  return NextResponse.json({ deleted: true });
 }
