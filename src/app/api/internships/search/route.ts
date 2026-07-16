@@ -16,6 +16,9 @@ const TAXONOMY: Array<{ match: RegExp; terms: string[] }> = [
   { match: /\bdata analy(?:st|tics)|business intelligence|power bi\b/i, terms: ["data analyst", "data analytics", "business intelligence", "power bi", "sql", "reporting analyst"] },
   { match: /\bsoftware|developer|engineer|programmer\b/i, terms: ["software engineer", "software developer", "developer", "programmer", "application engineer"] },
   { match: /\baccounting|accountant|finance analyst|financial analyst\b/i, terms: ["accountant", "accounting", "finance analyst", "financial analyst", "commercial analyst"] },
+  { match: /\bplumber|plumbing\b/i, terms: ["plumber", "plumbing", "plumbing apprentice", "apprentice plumber", "trade apprentice"] },
+  { match: /\belectrician|electrical\b/i, terms: ["electrician", "electrical", "electrical apprentice", "apprentice electrician", "trade apprentice"] },
+  { match: /\bcarpenter|carpentry\b/i, terms: ["carpenter", "carpentry", "carpentry apprentice", "apprentice carpenter", "trade apprentice"] },
   { match: /\bkitchen hand|dishwasher|kitchen assistant\b/i, terms: ["kitchen hand", "kitchen assistant", "dishwasher", "steward"] },
   { match: /\bretail assistant|sales assistant|store team\b/i, terms: ["retail assistant", "sales assistant", "store team member", "customer service"] },
 ];
@@ -55,13 +58,17 @@ function extractSearchIntent(input: string) {
 
   const careerStage = /\bintern(ship)?\b/.test(normalised)
     ? "internship"
-    : /\btrainee(ship)?|apprentice(ship)?|cadet(ship)?\b/.test(normalised)
-      ? "traineeship"
-      : /\bgraduate|grad\b/.test(normalised)
-        ? "graduate"
-        : /\bentry[ -]?level|junior\b/.test(normalised)
-          ? "entry level"
-          : null;
+    : /\bapprentice(ship)?\b/.test(normalised)
+      ? "apprenticeship"
+      : /\btrainee(ship)?\b/.test(normalised)
+        ? "traineeship"
+        : /\bcadet(ship)?\b/.test(normalised)
+          ? "cadetship"
+          : /\bgraduate|grad\b/.test(normalised)
+            ? "graduate"
+            : /\bentry[ -]?level|junior\b/.test(normalised)
+              ? "entry level"
+              : null;
 
   const requestedSeniority = /\b(?:chief|executive|director|head of|general manager|senior manager|manager|lead|principal)\b/.test(normalised)
     ? "senior"
@@ -117,7 +124,15 @@ function extractSearchIntent(input: string) {
 
   const taxonomyTerms = TAXONOMY.find((group) => group.match.test(normalised))?.terms ?? [];
   const coreTerms = Array.from(new Set([...keywords.split(/\s+/).filter((term) => term.length > 2), ...taxonomyTerms]));
-  const providerTerms = [keywords, careerStage].filter(Boolean).join(" ");
+  const stageProviderTerm: Record<string, string> = {
+    internship: "intern internship",
+    apprenticeship: "apprentice apprenticeship",
+    traineeship: "trainee traineeship",
+    cadetship: "cadet cadetship",
+    graduate: "graduate",
+    "entry level": "entry level junior",
+  };
+  const providerTerms = [keywords, careerStage ? stageProviderTerm[careerStage] : null].filter(Boolean).join(" ");
 
   return { keywords, providerTerms, coreTerms, careerStage, requestedSeniority, workArrangement, employmentType, experienceYears, salaryMin };
 }
@@ -154,9 +169,8 @@ function relevanceScore(job: JobResult, intent: ReturnType<typeof extractSearchI
   const text = `${title} ${description} ${category}`;
 
   const seniorTitle = /\b(?:chief|ceo|cfo|cio|cto|executive|director|head(?: of)?|general manager|senior manager|manager|team lead|tech lead|engineering lead|practice lead|principal|vice president|vp)\b/i;
-  const earlyCareerTitle = /\b(?:intern(?:ship)?|trainee(?:ship)?|apprentice(?:ship)?|cadet(?:ship)?|graduate|grad program|vacation program|summer program|early career|entry[ -]?level|junior|associate)\b/i;
+  const earlyCareerTitle = /\b(?:intern(?:ship)?|trainee(?:ship)?|apprentice(?:ship)?|cadet(?:ship)?|graduate|grad program|vacation program|summer program|early career|entry[ -]?level|junior|associate|first year|second year|third year|fourth year)\b/i;
 
-  // Hard seniority gate: early-career searches must never surface leadership roles.
   if (intent.requestedSeniority === "early-career" && seniorTitle.test(title)) return 0;
 
   let titleMatches = 0;
@@ -169,7 +183,9 @@ function relevanceScore(job: JobResult, intent: ReturnType<typeof extractSearchI
 
   const compatibleStageTerms: Record<string, string[]> = {
     internship: ["intern", "internship", "trainee", "traineeship", "apprentice", "apprenticeship", "cadet", "cadetship", "vacation program", "summer program", "graduate", "grad program", "early career", "entry level", "junior"],
+    apprenticeship: ["apprentice", "apprenticeship", "first year", "second year", "third year", "fourth year", "trade assistant", "trainee", "traineeship"],
     traineeship: ["trainee", "traineeship", "apprentice", "apprenticeship", "cadet", "cadetship", "intern", "internship", "graduate", "early career", "entry level", "junior"],
+    cadetship: ["cadet", "cadetship", "trainee", "traineeship", "intern", "internship", "graduate", "early career", "entry level"],
     graduate: ["graduate", "grad program", "early career", "entry level", "junior", "associate", "trainee", "cadet"],
     "entry level": ["entry level", "junior", "associate", "trainee", "apprentice", "cadet", "graduate", "early career"],
   };
@@ -181,10 +197,7 @@ function relevanceScore(job: JobResult, intent: ReturnType<typeof extractSearchI
   const hasRoleRelevance = titleMatches > 0 || bodyMatches >= 2;
   if (!hasRoleRelevance) return 0;
 
-  // For internship/traineeship searches, a compatible early-career signal is mandatory.
-  if ((intent.careerStage === "internship" || intent.careerStage === "traineeship") && !stageMatched) return 0;
-
-  // Graduate and entry-level searches can accept a clearly relevant role, but not an obviously senior one.
+  if (["internship", "apprenticeship", "traineeship", "cadetship"].includes(intent.careerStage ?? "") && !stageMatched) return 0;
   if ((intent.careerStage === "graduate" || intent.careerStage === "entry level") && seniorTitle.test(title)) return 0;
 
   let score = titleMatches * 30 + bodyMatches * 8;
@@ -290,6 +303,20 @@ function deduplicate(jobs: JobResult[]) {
   });
 }
 
+async function fetchAdzunaJobs(appId: string, appKey: string, what: string, location: string, intent: ReturnType<typeof extractSearchIntent>) {
+  const query = new URLSearchParams({ app_id: appId, app_key: appKey, results_per_page: "50", what, where: location, sort_by: "date" });
+  if (intent.salaryMin) query.set("salary_min", String(intent.salaryMin));
+  if (intent.employmentType === "full time") query.set("full_time", "1");
+  if (intent.employmentType === "part time") query.set("part_time", "1");
+  if (intent.employmentType === "contract") query.set("contract", "1");
+  if (intent.employmentType === "permanent") query.set("permanent", "1");
+  const response = await fetch(`${ADZUNA_BASE_URL}?${query.toString()}`, { headers: { Accept: "application/json" }, next: { revalidate: 900 } });
+  if (!response.ok) return { count: 0, jobs: [] as JobResult[] };
+  const data = await response.json();
+  const jobs = (Array.isArray(data.results) ? data.results : []).map((job: Record<string, any>) => ({ id: `adzuna-${job.id ?? job.redirect_url}`, title: job.title ?? "Job opportunity", company: job.company?.display_name ?? "Company not listed", location: job.location?.display_name ?? location, description: job.description ?? "", created: job.created ?? null, url: job.redirect_url, salaryMin: job.salary_min ?? null, salaryMax: job.salary_max ?? null, category: job.category?.label ?? null, source: "Adzuna", directEmployer: false }));
+  return { count: data.count ?? 0, jobs };
+}
+
 export async function GET(request: NextRequest) {
   const appId = process.env.ADZUNA_APP_ID;
   const appKey = process.env.ADZUNA_APP_KEY;
@@ -300,28 +327,22 @@ export async function GET(request: NextRequest) {
   const intent = extractSearchIntent(naturalLanguageQuery);
   const directFeeds = parseDirectFeeds();
   const directPromises = [...directFeeds.map(fetchDirectFeed), fetchNabCareers()];
-  let providerCount = 0;
-  let adzunaPromise: Promise<JobResult[]> = Promise.resolve([]);
-
-  if (appId && appKey) {
-    const query = new URLSearchParams({ app_id: appId, app_key: appKey, results_per_page: "50", what: intent.providerTerms || intent.keywords, where: location, sort_by: "date" });
-    if (intent.salaryMin) query.set("salary_min", String(intent.salaryMin));
-    if (intent.employmentType === "full time") query.set("full_time", "1");
-    if (intent.employmentType === "part time") query.set("part_time", "1");
-    if (intent.employmentType === "contract") query.set("contract", "1");
-    if (intent.employmentType === "permanent") query.set("permanent", "1");
-    adzunaPromise = fetch(`${ADZUNA_BASE_URL}?${query.toString()}`, { headers: { Accept: "application/json" }, next: { revalidate: 900 } })
-      .then(async (response) => {
-        if (!response.ok) return [];
-        const data = await response.json();
-        providerCount = data.count ?? 0;
-        return (Array.isArray(data.results) ? data.results : []).map((job: Record<string, any>) => ({ id: `adzuna-${job.id ?? job.redirect_url}`, title: job.title ?? "Job opportunity", company: job.company?.display_name ?? "Company not listed", location: job.location?.display_name ?? location, description: job.description ?? "", created: job.created ?? null, url: job.redirect_url, salaryMin: job.salary_min ?? null, salaryMax: job.salary_max ?? null, category: job.category?.label ?? null, source: "Adzuna", directEmployer: false }));
-      })
-      .catch(() => []);
-  }
 
   try {
-    const [adzunaJobs, ...directGroups] = await Promise.all([adzunaPromise, ...directPromises]);
+    let providerCount = 0;
+    let adzunaJobs: JobResult[] = [];
+    if (appId && appKey) {
+      const primary = await fetchAdzunaJobs(appId, appKey, intent.providerTerms || intent.keywords, location, intent);
+      providerCount = primary.count;
+      adzunaJobs = primary.jobs;
+      if (!adzunaJobs.length && intent.providerTerms !== intent.keywords) {
+        const fallback = await fetchAdzunaJobs(appId, appKey, intent.keywords, location, intent);
+        providerCount = fallback.count;
+        adzunaJobs = fallback.jobs;
+      }
+    }
+
+    const directGroups = await Promise.all(directPromises);
     const directJobs = directGroups.flat().filter((job) => matchesLocation(job, location));
     const ranked = deduplicate([...directJobs, ...adzunaJobs])
       .map((job) => ({ job, score: relevanceScore(job, intent) }))
